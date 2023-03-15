@@ -5,7 +5,7 @@ import requests
 import datetime
 from telegram import (
     Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, LabeledPrice, InlineKeyboardButton,
-    InlineKeyboardMarkup
+    InlineKeyboardMarkup, PhotoSize
 )
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -48,10 +48,6 @@ error_handler: Error occured during execution and user is informed
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [
-            InlineKeyboardButton("Top Up Wallet", callback_data="top_up_wallet"),
-            InlineKeyboardButton("Register for an Event", callback_data="register_for_event"),
-        ],
         [InlineKeyboardButton("Wallet", callback_data="wallet_options"),],
         [InlineKeyboardButton("Event", callback_data="event_options"),]
     ]
@@ -137,7 +133,6 @@ async def event_options(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     keyboard = [
         [InlineKeyboardButton("View Ongoing Events", callback_data="view_events"),],
-        [InlineKeyboardButton("Register for an Event", callback_data="register_for_event"),],
         [InlineKeyboardButton("View Registration Status", callback_data="check_registration"),],
         [InlineKeyboardButton("Redeem Event Ticket", callback_data="redeem"),],
         [InlineKeyboardButton("< Back", callback_data="start"),],
@@ -480,7 +475,6 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
 =============================================================================================
 view_events: View ongoing events
 check_registration: View status for users' registrations
-register_for_event: Prompt user for event title
 get_previous_registrations: API call to retrive previous registrations
 validate_registration: Validate event title and check previous registrations
 verify_balance: Check whether user has sufficient balance in in-app wallet
@@ -488,31 +482,6 @@ complete_purchase: Send API request to save payment records
 complete_registration: Send API request to save registration records
 =============================================================================================
 """
-def format_event_data(response_data):
-    text = ""
-    for event in response_data:
-        event_title = event['title']
-        event_description = event['description']
-        event_time = event['time']
-        event_venue = event['venue']
-        event_price = event['price']
-
-        text += f"Event Title: *{event_title}*\n" \
-            f"Description: {event_description}\n" \
-            f"Time: {event_time}\n" \
-            f"Venue: {event_venue}\n" \
-            f"Price: *{event_price}*\n\n"
-    return text
-
-async def view_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info("Retrieving Events Information")
-    query = update.callback_query
-    await query.answer()    
-    response = requests.get(endpoint_url + "/viewEvents")
-    response_data = response.json()
-    text = format_event_data(response_data)
-    await update_default_message(update, context, text)
-    return ROUTE
 
 def format_registration_data(response_data):
     text = ""
@@ -527,6 +496,7 @@ def format_registration_data(response_data):
     else: # User has no previous registrations
         text += "You have not registered for any events!"
     return text
+   
     
 async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = await get_user_id_from_query(update)
@@ -537,35 +507,68 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update_default_message(update, context, text)
     return ROUTE
 
+
+def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
     
-async def register_for_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    event_array = [] # Contains message, button and photo to be sent for each event
+    events_dict = {} # Contains mapping of event titles and price, to be used in validate_registration
+    
+    for event in response_data:
+        event_title = event['title']
+        event_description = event['description']
+        event_time = event['time']
+        event_venue = event['venue']
+        event_price = event['price']
+        
+        text = f"Event Title: *{event_title}*\n" \
+                  f"Description: {event_description}\n" \
+                  f"Time: {event_time}\n" \
+                  f"Venue: {event_venue}\n" \
+                  f"Price: *{event_price}*\n\n"
+                    
+        keyboard = [[InlineKeyboardButton(text='Register for Event', callback_data=f'title_{event_title}')],]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        # ToDo: Edit the file_id to match the url for the event image
+        photo = PhotoSize(
+            file_id="https://ipfs.io/ipfs/QmfDTSqRjx1pgD1Jk6kfSyvGu1PhPc5GEx837ojK8wfGNi",
+            file_unique_id="some_random_id",
+            width=400,
+            height=400
+        )
+        event_array.append((text, reply_markup, photo))
+        
+        events_dict[event_title] = event_price
+        
+    context.user_data["events_dict"] = events_dict
+    return event_array
+
+async def view_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Retrieving Events Information")
     query = update.callback_query
-    await query.answer()    
+    await query.answer()
+    
     response = requests.get(endpoint_url + "/viewEvents")
     response_data = response.json()
-
-    # Create mapping of event titles and their prices
-    events_dict = {}
-    keyboard = [[InlineKeyboardButton("< Back", callback_data="start")]]
-    for event in response_data:
-        title = event['title']
-        price = event['price']
-        events_dict[title] = price
-        keyboard.append([InlineKeyboardButton(title, callback_data=f"title_{title}")])
-    context.user_data["events_dict"] = events_dict
-    event_title_list = events_dict.keys()
-    logger.info(f"Existing Event titles: {event_title_list}")
+    event_array = format_event_data(response_data, context)
     
-    if len(events_dict) == 0:
-        await update_default_message(update, "There are currently no ongoing events to register for")
-        return ROUTE
+    if len(event_array) == 0:
+        await update_default_message(update, context, "There are currently no ongoing events to register for")
     
     else:
-        await query.edit_message_text(
-            text="Please select which event you would like to register for",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        return ROUTE
+        for text, reply_markup, photo in event_array:
+            await context.bot.send_photo(
+                chat_id=update.effective_chat.id, 
+                photo=photo,
+                caption=text, 
+                parse_mode="markdown", 
+                reply_markup=reply_markup
+            )
+        
+        text = "Please click on the register button for the event you would like to register for."
+        await send_default_message(update, context, text)
+        
+    return ROUTE
 
 
 def get_previous_registrations(user_id, event_title):
@@ -587,6 +590,7 @@ def get_previous_registrations(user_id, event_title):
 
 
 async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Validating registration for user")
     query = update.callback_query
     await query.answer()   
     
@@ -599,8 +603,7 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
     if double_registration:
         text=("You have already registered for this event. \n"
             "You cannot register for the same event again.")
-        await update_default_message(update, context, text)
-        return ROUTE
+        await send_default_message(update, context, text)
     
     else:
         # Prompt user for payment confirmation
@@ -609,16 +612,17 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data["event_price"] = event_price
         keyboard = [
             [InlineKeyboardButton("< Back", callback_data="start")],
-            [
-                InlineKeyboardButton("Yes", callback_data="verify_balance"),
-            ]
+            [InlineKeyboardButton("Yes", callback_data="verify_balance"),]
         ]
-        await query.edit_message_text(
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
             text=f'Do you wish to make a payment of ${event_price} for the event using your Mynt Wallet?\n'
             "Reply with Yes to confirm payment",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="markdown",
         )
-        return ROUTE
+        
+    return ROUTE
 
 
 async def verify_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -721,7 +725,6 @@ if __name__ == '__main__':
                 CallbackQueryHandler(event_options, pattern="^event_options$"),
                 CallbackQueryHandler(view_events, pattern="^view_events$"),
                 CallbackQueryHandler(check_registration, pattern="^check_registration$"),
-                CallbackQueryHandler(register_for_event, pattern="^register_for_event$"),
                 CallbackQueryHandler(validate_registration, pattern="^title_(.*)$"), ## Can handle any callback pattern,
                 CallbackQueryHandler(verify_balance, pattern="^verify_balance$"),
                 CallbackQueryHandler(redeem, pattern="^redeem$"),
