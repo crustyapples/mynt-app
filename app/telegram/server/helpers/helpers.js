@@ -254,6 +254,10 @@ module.exports = {
     if (registrationInfo.redemption_time) {
       docData.redemption_time = registrationInfo.redemption_time;
     }
+
+    if (registrationInfo.mint_account) {
+      docData.mint_account = registrationInfo.mint_account;
+    }
     
     const docId = docData.userId + docData.eventTitle;
     const docRef = doc(db, "registrations", docId.toString());
@@ -261,10 +265,12 @@ module.exports = {
     // Include redemption_time only if it exists
     const updateData = {
       status: docData.status,
-      mint_account: docData.mint_account
     };
     if (docData.redemption_time) {
       updateData.redemption_time = docData.redemption_time;
+    }
+    if (docData.mint_account) {
+      updateData.mint_account = docData.mint_account;
     }
 
     await updateDoc(docRef, updateData);
