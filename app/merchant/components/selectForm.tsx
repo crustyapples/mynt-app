@@ -158,7 +158,7 @@ const SelectForm = ({
       axios.post(BASE + "/mintNFT", data).then((response: { data: any }) => {
         console.log(response.data.mintAccount);
         const ticketLink = `https://solana.fm/address/${response.data.mintAccount}/metadata?cluster=devnet-qn1`;
-        const message = `Congratulations! You have won a ticket to ${eventName2}! Please visit ${ticketLink} to view your ticket.`;
+        const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
         const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${winners[i].chat_id}&text=${message}`;
         fetch(telegramPush).then((res) => {
           console.log(res);
