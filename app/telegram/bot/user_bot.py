@@ -531,7 +531,7 @@ def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
         
         # ToDo: Edit the file_id to match the url for the event image
         photo = PhotoSize(
-            file_id="https://ipfs.io/ipfs/QmfDTSqRjx1pgD1Jk6kfSyvGu1PhPc5GEx837ojK8wfGNi",
+            file_id=f"https://firebasestorage.googleapis.com/v0/b/treehoppers-mynt.appspot.com/o/{event_title}{event_time}?alt=media&token=07ddd564-df85-49a5-836a-c63f0a4045d6",
             file_unique_id="some_random_id",
             width=400,
             height=400
