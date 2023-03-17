@@ -25,6 +25,7 @@ const Content = () => {
     chat_id: "",
   });
   const [scan, setScan] = useState(false);
+  const [table, setTable] = useState([]);
   const attendees = users.filter((user) => {
     return user.status.toLowerCase() === "successful";
   });
@@ -75,11 +76,19 @@ const Content = () => {
 
       // check if parsedData user id is inside the attendees userid
       const user = attendees.find((user) => {
-        return user.id === parsedData.userId;
+        return user.id === parsedData.userId && user.status === "SUCCESSFUL";
       });
 
+      const userUnsuccessful = users.find((user) => {
+        return user.id === parsedData.userId && user.status === "UNSUCCESSFUL";
+      })
+
+      const userRedeemed = users.find((user) => {
+        return user.id === parsedData.userId && user.status === "REDEEMED";
+      })
+
       if (parsedData.eventTitle === event.title && user) {
-        alert("Verified!");
+        // alert("Verified!");
         const text = "You have been successfully verified! Please enter the event venue :)"
         const chat_id = parsedData.chatId;
         console.log(chat_id);
@@ -97,6 +106,47 @@ const Content = () => {
           redemption_time:  redemptionTime,
         };
 
+        // find user in table array with matching id and update status to REDEEMED
+
+        const updatedTable = table.map((user) => {
+          if (user.id === parsedData.userId) {
+            user.status = "REDEEMED";
+          }
+          return user;
+        })
+
+        const updatedUsers = users.map((user) => {
+          if (user.id === parsedData.userId) {
+            user.status = "REDEEMED";
+          }
+          return user;
+        })
+
+        setUsers(updatedUsers)
+
+        setTable(updatedTable)
+
+
+        // getUserInfo(parsedData.userId).then((res) => {
+        //   setResult({
+        //     name: res.name,
+        //     userId: parsedData.userId,
+        //     eventTitle: parsedData.eventTitle,
+        //     status: res.status,
+        //     chat_id: parsedData.chatId,
+        //   });
+          
+        //   // find user in table array with matching name and update status to REDEEMED
+        //   const updatedTable = table.map((user) => {
+        //     if (user.name === res.name) {
+        //       user.status = "REDEEMED";
+        //     }
+        //     return user;
+        //   })
+
+        //   setTable(updatedTable)
+        // });
+
         axios
           .post(BASE + "/updateRegistration", data)
           .then((response) => {
@@ -106,15 +156,13 @@ const Content = () => {
             console.log(error);
           });
 
-        getUserInfo(parsedData.userId).then((res) => {
-          setResult({
-            name: res.name,
-            userId: parsedData.userId,
-            eventTitle: parsedData.eventTitle,
-            status: res.status,
-            chat_id: parsedData.chatId,
-          });
-        });
+
+      } else if (parsedData.eventTitle === event.title && userUnsuccessful) {
+        alert("User was not allocated a ticket during the raffle!");
+        return;
+      } else if (parsedData.eventTitle === event.title && userRedeemed) {
+        alert("User has already redeemed their ticket!");
+        return;
       } else {
         alert("User is not registered for this event!");
         return;
@@ -175,6 +223,19 @@ const Content = () => {
               setLoading(false);
               setEvent(eventData);
               setUsers(userData);
+              const tableData = userData.map((user) => {
+                return {
+                  id: user.id,
+                  name: user.name,
+                  handle: user.handle,
+                  number: user.contact,
+                  status: user.status,
+                  mint_account: user.mint_account,
+                  registration_time: user.registration_time,
+                  redemption_time: user.redemption_time,
+                };
+              })
+              setTable(tableData)
             });
           });
         }
@@ -182,17 +243,17 @@ const Content = () => {
     });
   }, []);
 
-  const tableData = users.map((user) => {
-    return {
-      name: user.name,
-      handle: user.handle,
-      number: user.contact,
-      status: user.status,
-      mint_account: user.mint_account,
-      registration_time: user.registration_time,
-      redemption_time: user.redemption_time,
-    };
-  });
+  // const tableData = users.map((user) => {
+  //   return {
+  //     name: user.name,
+  //     handle: user.handle,
+  //     number: user.contact,
+  //     status: user.status,
+  //     mint_account: user.mint_account,
+  //     registration_time: user.registration_time,
+  //     redemption_time: user.redemption_time,
+  //   };
+  // });
 
   return (
     <div className="flex flex-col justify-center">
@@ -232,7 +293,7 @@ const Content = () => {
           </div>
 
           <div className="m-2">
-            <Table data={tableData} />
+            <Table data={table} />
           </div>
           </div>
 
