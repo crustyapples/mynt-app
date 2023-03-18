@@ -14,7 +14,18 @@ const EventForm = () => {
 
   function handleClick() {
     console.log(eventName, dateTime, venue, capacity, image);
-    uploadData({ title: eventName, description: description, price: Number(price), time: dateTime, venue: venue, capacity: capacity},image!)
+    if (!eventName || !dateTime || !venue || !capacity || !image) {
+      alert('Please fill out all required fields.');
+      return;
+    }
+    uploadData({
+      title: eventName,
+      description: description,
+      price: Number(price),
+      time: dateTime,
+      venue: venue,
+      capacity: capacity
+    }, image);
   }
 
   const storageRef = ref(storage, eventName + dateTime);
