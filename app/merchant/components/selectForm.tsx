@@ -4,6 +4,7 @@ import { setDoc, doc } from "firebase/firestore";
 import { ref, uploadBytes } from "firebase/storage";
 import axios from "axios";
 import { Box, Skeleton, SkeletonText, Spinner, Center } from "@chakra-ui/react";
+import ConfirmationModal from "./confirmationModal"
 
 // const JWT =
 //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjODA1MzJhMC01YmU2LTQyZTItYmRlNS1hMTkwYWZkMzNkZjkiLCJlbWFpbCI6ImFkdmFpdC5iaGFyYXQuZGVzaHBhbmRlQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImlkIjoiRlJBMSIsImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxfSx7ImlkIjoiTllDMSIsImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxfV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiJhMTkyMTNjOGE4YzM1MGNiMjMwMCIsInNjb3BlZEtleVNlY3JldCI6IjA1YjcwMTY0OWEzMGUxOWY5NDE1MzY2OWE4MDNiYjczZGY4MTU5ODIxM2ZiNzlmM2MyYzk3MGViOWQyMjFlNmUiLCJpYXQiOjE2NzUzNzI0MjF9.mmLYahJJ-etF5u_sRdOyJ2irM7F848vMaJ_Z9rK2G0A";
@@ -204,8 +205,21 @@ const SelectForm = ({
     
     
   }
+  
+  const [showModal, setShowModal] = useState(false);
 
   function handleClick() {
+    setShowModal(true);
+  }
+
+
+  function handleCancel() {
+    setShowModal(false);
+  }
+
+  function handleConfirm() {
+    setShowModal(false);
+
     console.log(eventName2, dateTime2, venue2, capacity2, image);
     // Upload image to /uploadFile endpoint using Pinata
     setLoading(true);
@@ -333,6 +347,13 @@ const SelectForm = ({
           >
             Conduct Selection
           </button>
+          <ConfirmationModal
+          show={showModal}
+          title="Confirmation"
+          message="This will use first-come, first-serve method to determine which user will win the tickets. Are you sure you want to continue?"
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+        />
         </form>
       )}
     </>

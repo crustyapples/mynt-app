@@ -3,6 +3,7 @@ import { database, storage } from "../firebaseConfig";
 import { setDoc, doc } from "firebase/firestore";
 import { ref, uploadBytes } from "firebase/storage";
 import axios from "axios";
+import ConfirmationModal from "./confirmationModal"
 import { Box, Skeleton, SkeletonText, Spinner, Center } from "@chakra-ui/react";
 
 // const JWT =
@@ -213,7 +214,20 @@ const RaffleForm = ({
     
   }
 
+  const [showModal, setShowModal] = useState(false);
+
   function handleClick() {
+    setShowModal(true);
+  }
+
+
+  function handleCancel() {
+    setShowModal(false);
+  }
+
+  function handleConfirm() {
+    setShowModal(false);
+
     console.log(eventName2, dateTime2, venue2, capacity2, image);
     // Upload image to /uploadFile endpoint using Pinata
     setLoading(true);
@@ -341,6 +355,13 @@ const RaffleForm = ({
           >
             Conduct Raffle
           </button>
+          <ConfirmationModal
+          show={showModal}
+          title="Confirmation"
+          message="This will use a raffle system to determine which user will win the tickets. Are you sure you want to continue?"
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+        />
         </form>
       )}
     </>
