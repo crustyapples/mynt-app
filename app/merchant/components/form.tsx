@@ -10,11 +10,12 @@ const EventForm = () => {
   const [dateTime, setDateTime] = useState("");
   const [venue, setVenue] = useState("");
   const [capacity, setCapacity] = useState("");
+  const [symbol, setSymbol] = useState("");
   const [image, setImage] = useState<File>();
 
   function handleClick() {
     console.log(eventName, dateTime, venue, capacity, image);
-    if (!eventName || !dateTime || !venue || !capacity || !image) {
+    if (!eventName || !dateTime || !venue || !capacity || !symbol || !image) {
       alert('Please fill out all required fields.');
       return;
     }
@@ -24,13 +25,14 @@ const EventForm = () => {
       price: Number(price),
       time: dateTime,
       venue: venue,
-      capacity: capacity
+      capacity: capacity,
+      symbol: symbol,
     }, image);
   }
 
   const storageRef = ref(storage, eventName + dateTime);
 
-  const uploadData = (data: { title: string; description: string; price: number; time: string; venue: string; capacity: string;} | undefined, image: File) => {
+  const uploadData = (data: { title: string; description: string; price: number; time: string; venue: string; capacity: string; symbol: string;} | undefined, image: File) => {
     // const dbInstance = collection(database, '/MerchantCollection');
     if (data) {
       const dbInstance = doc(database, "/events", data.title + data.time);
@@ -139,6 +141,22 @@ const EventForm = () => {
           placeholder="Enter the capacity"
           value={capacity}
           onChange={(e) => setCapacity(e.target.value)}
+        />
+      </div>
+      <div className="mb-4">
+        <label
+          className="block text-gray-700 font-medium mb-2"
+          htmlFor="nft-symbol"
+        >
+          NFT Symbol
+        </label>
+        <input
+          className="border border-gray-400 p-2 w-full rounded-md"
+          id="nft-symbol"
+          type="text"
+          placeholder="Enter the nft symbol"
+          value={symbol}
+          onChange={(e) => setSymbol(e.target.value)}
         />
       </div>
       <div className="mb-4">
