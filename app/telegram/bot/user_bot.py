@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 
-ROUTE, NEW_USER, SHOW_QR = range(3)
+ROUTE, NEW_USER, NEW_USER_NAME, SHOW_QR = range(4)
 
 """
 =============================================================================================
@@ -358,16 +358,20 @@ async def top_up_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = await get_user_id_from_query(update)
     context.user_data["new_user"] = await is_new_user(user_id)
     if context.user_data["new_user"] == True:
-        text=("To help us process your top-up, please provide your full name and "
-              "your contact in the following format: 'John : 81818181'. \n"
+        text=("To help us process your top-up, please provide your name in the following format: 'John'. \n"
               "This information is only required for your first top-up.")
         await update_default_message(update, context, text)
-        return NEW_USER
+        return NEW_USER_NAME
 
     else:
         await get_topup_amount(update, context)
         return ROUTE
 
+async def get_new_user_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_name = update.message.text
+    context.user_data['new_user_name'] = user_name
+    await update.message.reply_text("Nice! Please provide your contact number in the following format: '81818181'.")
+    return NEW_USER
 
 async def is_new_user(user_id):
     response = requests.get(endpoint_url + f"/getUserInfo/{user_id}")
@@ -379,11 +383,12 @@ async def is_new_user(user_id):
 
 
 async def register_new_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_info = update.message.text.split(': ')
+    contact_number = update.message.text
+    context.user_data['new_contact_number'] = contact_number
     user_id = update.message.from_user.id
     user_handle = update.message.from_user.username
-    user_name = user_info[0]
-    user_contact = user_info[1]
+    user_name = context.user_data["new_user_name"]
+    user_contact = context.user_data["new_contact_number"]
     data = {
         'user_id': user_id,
         'user_handle': user_handle,
@@ -751,7 +756,8 @@ if __name__ == '__main__':
                 CommandHandler('start', start),
                 CommandHandler('cancel', cancel),
             },
-            NEW_USER: [MessageHandler(filters.Regex('^([A-Za-z ]+): ([0-9A-Za-z.+-]+)$'), register_new_user)],
+            NEW_USER: [MessageHandler(filters.Regex("^[0-9]{8}$"), register_new_user)],
+            NEW_USER_NAME: [MessageHandler(filters.Regex("^[a-zA-Z]+$"), get_new_user_name)],
             SHOW_QR: [MessageHandler(filters.TEXT, show_QR)],
         },
         fallbacks=[MessageHandler(filters.TEXT, unknown)]
