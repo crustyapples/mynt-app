@@ -23,6 +23,7 @@ interface EventFormProps {
   capacity2: string;
   users: string[];
   address: string[];
+  symbol: string;
 }
 
 const RaffleForm = ({
@@ -34,8 +35,8 @@ const RaffleForm = ({
   capacity2,
   users,
   address,
+  symbol,
 }: EventFormProps) => {
-  const [symbol, setSymbol] = useState("");
   const [image, setImage] = useState<File>();
   const [loading, setLoading] = useState(false);
 
@@ -253,7 +254,7 @@ const RaffleForm = ({
             category: null,
           },
         };
-        console.log(metadata);
+        console.log("This is the metadata: "+metadata);
         return metadata;
       })
       .then((data) => {
@@ -318,7 +319,7 @@ const RaffleForm = ({
           <div className="my-4">
             <h1 className="text-2xl font-bold text-center">{eventName2}</h1>
           </div>
-          <div className="mb-4">
+          {/* <div className="mb-4">
             <label
               className="block text-gray-700 font-medium mb-2"
               htmlFor="symbol"
@@ -333,7 +334,7 @@ const RaffleForm = ({
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
             />
-          </div>
+          </div> */}
           <div className="mb-4">
             <label
               className="block text-gray-700 font-medium mb-2"

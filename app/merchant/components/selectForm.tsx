@@ -23,6 +23,7 @@ interface EventFormProps {
   capacity2: string;
   users: string[];
   address: string[];
+  symbol: string;
 }
 
 const SelectForm = ({
@@ -34,8 +35,8 @@ const SelectForm = ({
   capacity2,
   users,
   address,
+  symbol
 }: EventFormProps) => {
-  const [symbol, setSymbol] = useState("");
   const [image, setImage] = useState<File>();
   const [loading, setLoading] = useState(false);
 
@@ -309,22 +310,6 @@ const SelectForm = ({
         <form className="bg-gray-100 p-4 rounded-lg shadow-md">
           <div className="my-4">
             <h1 className="text-2xl font-bold text-center">{eventName2}</h1>
-          </div>
-          <div className="mb-4">
-            <label
-              className="block text-gray-700 font-medium mb-2"
-              htmlFor="symbol"
-            >
-              Symbol
-            </label>
-            <input
-              className="border border-gray-400 p-2 w-full rounded-md"
-              id="description"
-              type="text"
-              placeholder="Enter the NFT Symbol"
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value)}
-            />
           </div>
           <div className="mb-4">
             <label

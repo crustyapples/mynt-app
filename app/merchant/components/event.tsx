@@ -36,6 +36,7 @@ interface CardProps {
   venue: string;
   capacity: string;
   users: string[];
+  symbol: string;
 }
 
 export default function Card({
@@ -45,7 +46,8 @@ export default function Card({
   time,
   venue,
   capacity,
-  users
+  users,
+  symbol
 }: CardProps) {
   const [address, setAddress] = useState<string[]>([]);
   const callback = (address: string[]) => {
@@ -151,6 +153,7 @@ export default function Card({
         <div className="px-2 pb-5">
           <div className="flex items-center justify-between">
             <span className="text-2xl font-bold text-gray-900">${price}</span>
+
             <div className="flex justify-end">
               <button
                 onClick={onOpenRaffleModal}
@@ -286,6 +289,7 @@ export default function Card({
                     venue2={venue}
                     capacity2={capacity}
                     users={users}
+                    symbol = {symbol}
                     address={address}
                   />
                 ) : (
@@ -323,6 +327,7 @@ export default function Card({
                     capacity2={capacity}
                     users={users}
                     address={address}
+                    symbol={symbol}
                   />
                 ) : (
                   <h1>Connect your Wallet to Conduct the Selection!</h1>

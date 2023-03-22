@@ -34,6 +34,7 @@ export default function Home() {
             time={events[i].time}
             venue={events[i].venue}
             capacity={events[i].capacity}
+            symbol ={events[i].symbol}
           />
         </div>
       );

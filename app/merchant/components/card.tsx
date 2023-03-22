@@ -23,6 +23,7 @@ interface CardProps {
   time: string;
   venue: string;
   capacity: string;
+  symbol: string;
 }
 
 export default function Card({
@@ -32,6 +33,7 @@ export default function Card({
   time,
   venue,
   capacity,
+  symbol,
 }: CardProps) {
   const { isOpen: isOpenEditModal, onOpen: onOpenEditModal, onClose: onCloseEditModal } = useDisclosure();
   const [deleted, setDeleted] = useState(false);
