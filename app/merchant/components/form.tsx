@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { storage,database } from "../firebaseConfig";
 import { setDoc, doc } from "firebase/firestore";
 import { ref, uploadBytes } from "firebase/storage";
+import axios from "axios";
+
+const JWT = process.env.NEXT_PUBLIC_PINATA_JWT;
+
 
 const EventForm = () => {
   const [eventName, setEventName] = useState("");
@@ -13,12 +17,14 @@ const EventForm = () => {
   const [symbol, setSymbol] = useState("");
   const [image, setImage] = useState<File>();
 
-  function handleClick() {
+  async function handleClick() {
     console.log(eventName, dateTime, venue, capacity, image);
     if (!eventName || !dateTime || !venue || !capacity || !symbol || !image) {
       alert('Please fill out all required fields.');
       return;
     }
+    const ipfsHash = await pinataUpload(image);
+
     uploadData({
       title: eventName,
       description: description,
@@ -27,12 +33,49 @@ const EventForm = () => {
       venue: venue,
       capacity: capacity,
       symbol: symbol,
+      imageCID: ipfsHash,
     }, image);
   }
 
+  const pinataUpload = async (image: any) => {
+    const formData: {
+      append: (arg0: string, arg1: any) => void;
+      _boundary: any;
+    } = new FormData() as any;
+    formData.append("file", image);
+
+    const metadata = JSON.stringify({
+      name: "File name",
+    });
+    formData.append("pinataMetadata", metadata);
+
+    const options = JSON.stringify({
+      cidVersion: 0,
+    });
+    formData.append("pinataOptions", options);
+
+    try {
+      const res = await axios.post(
+        "https://api.pinata.cloud/pinning/pinFileToIPFS",
+        formData,
+        {
+          maxBodyLength: Infinity,
+          headers: {
+            "Content-Type": `multipart/form-data; boundary=${formData._boundary}`,
+            Authorization: `Bearer ${JWT}`,
+          },
+        }
+      );
+      console.log(res.data.IpfsHash);
+      return res.data.IpfsHash;
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const storageRef = ref(storage, eventName + dateTime);
 
-  const uploadData = (data: { title: string; description: string; price: number; time: string; venue: string; capacity: string; symbol: string;} | undefined, image: File) => {
+  const uploadData = (data: { title: string; description: string; price: number; time: string; venue: string; capacity: string; symbol: string; imageCID: string;} | undefined, image: File) => {
     // const dbInstance = collection(database, '/MerchantCollection');
     if (data) {
       const dbInstance = doc(database, "/events", data.title + data.time);

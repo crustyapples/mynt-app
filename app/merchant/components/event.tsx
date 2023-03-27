@@ -37,6 +37,7 @@ interface CardProps {
   capacity: string;
   users: string[];
   symbol: string;
+  imageCID: string;
 }
 
 export default function Card({
@@ -47,7 +48,8 @@ export default function Card({
   venue,
   capacity,
   users,
-  symbol
+  symbol,
+  imageCID,
 }: CardProps) {
   const [address, setAddress] = useState<string[]>([]);
   const callback = (address: string[]) => {
@@ -291,6 +293,7 @@ export default function Card({
                     users={users}
                     symbol = {symbol}
                     address={address}
+                    imageCID ={imageCID}
                   />
                 ) : (
                   <h1>Connect your Wallet to Conduct the Raffle!</h1>
@@ -328,6 +331,7 @@ export default function Card({
                     users={users}
                     address={address}
                     symbol={symbol}
+                    imageCID={imageCID}
                   />
                 ) : (
                   <h1>Connect your Wallet to Conduct the Selection!</h1>
