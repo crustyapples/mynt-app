@@ -268,6 +268,8 @@ const Content = () => {
             venue={event.venue}
             capacity={event.capacity}
             users={users}
+            symbol={event.symbol}
+            imageCID={event.imageCID}
           />
         ) : null}
       </div>
