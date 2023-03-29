@@ -512,17 +512,6 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     text=format_registration_data(response_data)
     await update_default_message(update, context, text)
     return ROUTE
-
-def is_valid_url(url):
-    try:
-        response = requests.get(url, stream=True)
-        if response.status_code == requests.codes.ok:
-            image = Image.open(response.raw)
-            return image.format == 'JPEG'
-        else:
-            return False
-    except:
-        return False
     
 def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
     
@@ -545,22 +534,13 @@ def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [[InlineKeyboardButton(text='Register for Event', callback_data=f'title_{event_title}')],]
         reply_markup = InlineKeyboardMarkup(keyboard)
         photo_url = f"https://firebasestorage.googleapis.com/v0/b/treehoppers-mynt.appspot.com/o/{event_title}{event_time}?alt=media&token=07ddd564-df85-49a5-836a-c63f0a4045d6"
-        if is_valid_url(photo_url):
-            photo = PhotoSize(
-                file_id=photo_url,
-                file_unique_id="some_random_id",
-                width=400,
-                height=400
-            )
-        else: # Use fallback URL if it fails
-            logger.info('Cant find image: '+photo_url+ " resorting to fallback")
-            fallback_url = "https://ipfs.io/ipfs/QmfDTSqRjx1pgD1Jk6kfSyvGu1PhPc5GEx837ojK8wfGNi"
-            photo = PhotoSize(
-                file_id=fallback_url,
-                file_unique_id="some_random_id",
-                width=400,
-                height=400
-            )
+        # if is_valid_url(photo_url):
+        photo = PhotoSize(
+            file_id=photo_url,
+            file_unique_id="some_random_id",
+            width=400,
+            height=400
+        )
         event_array.append((text, reply_markup, photo))
         
         events_dict[event_title] = event_price
@@ -570,6 +550,11 @@ def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
 
 async def view_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Retrieving Events Information")
+
+    # Send loading message to user
+    loading_message = "Loading events..."
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
+
     query = update.callback_query
     await query.answer()
     
@@ -582,14 +567,30 @@ async def view_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     else:
         for text, reply_markup, photo in event_array:
-            await context.bot.send_photo(
-                chat_id=update.effective_chat.id, 
-                photo=photo,
-                caption=text, 
-                parse_mode="markdown", 
-                reply_markup=reply_markup
-            )
-        
+                try:
+                    await context.bot.send_photo(
+                        chat_id=update.effective_chat.id, 
+                        photo=photo,
+                        caption=text, 
+                        parse_mode="markdown", 
+                        reply_markup=reply_markup
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending photo for event: {e}")
+                    fallback_url ="https://ipfs.io/ipfs/QmfDTSqRjx1pgD1Jk6kfSyvGu1PhPc5GEx837ojK8wfGNi"
+                    photo = PhotoSize(
+                        file_id=fallback_url,
+                        file_unique_id="some_random_id",
+                        width=400,
+                        height=400
+                    )
+                    await context.bot.send_photo(
+                        chat_id=update.effective_chat.id, 
+                        photo=photo,
+                        caption=text, 
+                        parse_mode="markdown", 
+                        reply_markup=reply_markup
+                    )
         text = "Please click on the register button for the event you would like to register for."
         await send_default_message(update, context, text)
         
