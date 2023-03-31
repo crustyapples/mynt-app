@@ -108,8 +108,8 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 =============================================================================================
 wallet_options: Modify the current text (start msg) and display wallet options
 event_options: Modify the current text (start msg) and display event options
-send_default_message: Send message displaying the text(variable) passed, as well as Menu option
-update_default_message: Update the previous message with the text(variable) passed, as well as Menu Option
+send_default_message: Send message displaying the text(variable) passed, as well as Menu option. There are also wallet and event variations of the same function which routes different "< Back" buttons
+update_default_message: Update the previous message with the text(variable) passed, as well as Menu Option. There are also wallet and event variations of the same function which routes different "< Back" buttons
 =============================================================================================
 """
 
@@ -144,7 +144,6 @@ async def event_options(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ROUTE
 
-
 async def send_default_message(update, context: ContextTypes.DEFAULT_TYPE, text):
     keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="start"),],]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -153,10 +152,38 @@ async def send_default_message(update, context: ContextTypes.DEFAULT_TYPE, text)
         text=text,
         reply_markup=reply_markup, 
     )
+
+async def send_default_event_message(update, context: ContextTypes.DEFAULT_TYPE, text):
+    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="event_options"),],]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        reply_markup=reply_markup, 
+    )
+
+async def send_default_wallet_message(update, context: ContextTypes.DEFAULT_TYPE, text):
+    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="wallet_options"),],]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        reply_markup=reply_markup, 
+    )
     
     
-async def update_default_message(update, context: ContextTypes.DEFAULT_TYPE, text):
-    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="start"),],]
+async def update_default_event_message(update, context: ContextTypes.DEFAULT_TYPE, text):
+    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="event_options"),],]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    query = update.callback_query
+    await query.edit_message_text(
+        text=text,
+        reply_markup=reply_markup,
+        parse_mode='Markdown',
+    )
+
+async def update_default_wallet_message(update, context: ContextTypes.DEFAULT_TYPE, text):
+    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="wallet_options"),],]
     reply_markup = InlineKeyboardMarkup(keyboard)
     query = update.callback_query
     await query.edit_message_text(
@@ -186,7 +213,7 @@ async def view_wallet_balance(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_balance = response_data['balance']
 
     text=f'Your wallet balance is ${user_balance}'
-    await update_default_message(update, context, text)
+    await update_default_wallet_message(update, context, text)
     return ROUTE
 
 def format_txn_history(response_data):
@@ -235,7 +262,7 @@ async def view_transaction_history(update: Update, context: CallbackContext):
     text = format_txn_history(transactions)
 
     # Create the inline keyboard for pagination
-    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="start"),],]
+    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="wallet_options"),],]
     if start_idx > 0:
         # Add "Previous" button if not on the first page
         keyboard.append([InlineKeyboardButton("Previous", callback_data=f"view_transaction_history_{page_num-1}")])
@@ -285,13 +312,13 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     response_data = response.json()
 
     if len(response_data) <= 0:
-        await send_default_message(update, context, f"You have no registered events")
+        await update_default_event_message(update, context, f"You have no registered events")
         return ROUTE
 
     else:
         registered_events, reply_string = get_successful_registrations(response_data)
         if len(registered_events) == 0: # if raffle was not successful - he did not get the ticket
-            await send_default_message(update, context, f"You have no successful registrations")
+            await update_default_event_message(update, context, f"You have no successful registrations")
             return ROUTE
         
         else:
@@ -360,7 +387,7 @@ async def top_up_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data["new_user"] == True:
         text=("To help us process your top-up, please provide your name in the following format: 'John'. \n"
               "This information is only required for your first top-up.")
-        await update_default_message(update, context, text)
+        await update_default_wallet_message(update, context, text)
         return NEW_USER_NAME
 
     else:
@@ -410,7 +437,7 @@ async def register_new_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_topup_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("< Back to Menu", callback_data="start"),],
+        [InlineKeyboardButton("< Back to Menu", callback_data="wallet_options"),],
         [
             InlineKeyboardButton("$10", callback_data="top_up_10"),
             InlineKeyboardButton("$50", callback_data="top_up_50"),
@@ -418,11 +445,13 @@ async def get_topup_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
+    query= update.callback_query
+    await query.edit_message_text(
+        # chat_id=update.effective_chat.id,
         text="Please select an amount to top up your Mynt Wallet",
         reply_markup=reply_markup, 
-    ) 
+    )
+    
 
 
 async def proceed_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -471,7 +500,7 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
     response = requests.post(endpoint_url + "/topUpWallet", json=data)
     if response.status_code == 200:
         text=f"You have successfully topped up ${topup_amount}!"
-        await send_default_message(update, context, text)
+        await send_default_wallet_message(update, context, text)
 
     else:
         await update.message.reply_text('An unexpected error occurred')
@@ -510,7 +539,7 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     response = requests.get(endpoint_url + f"/getRegistrations/{user_id}")
     response_data = response.json()
     text=format_registration_data(response_data)
-    await update_default_message(update, context, text)
+    await update_default_event_message(update, context, text)
     return ROUTE
     
 def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
@@ -563,7 +592,7 @@ async def view_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
     event_array = format_event_data(response_data, context)
     
     if len(event_array) == 0:
-        await update_default_message(update, context, "There are currently no ongoing events to register for")
+        await update_default_event_message(update, context, "There are currently no ongoing events to register for")
     
     else:
         for text, reply_markup, photo in event_array:
@@ -592,7 +621,7 @@ async def view_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         reply_markup=reply_markup
                     )
         text = "Please click on the register button for the event you would like to register for."
-        await send_default_message(update, context, text)
+        await send_default_event_message(update, context, text)
         
     return ROUTE
 
@@ -629,7 +658,7 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
     if double_registration:
         text=("You have already registered for this event. \n"
             "You cannot register for the same event again.")
-        await send_default_message(update, context, text)
+        await send_default_event_message(update, context, text)
     
     else:
         # Prompt user for payment confirmation
@@ -637,7 +666,7 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
         event_price = events_dict[event_title]
         context.user_data["event_price"] = event_price
         keyboard = [
-            [InlineKeyboardButton("< Back", callback_data="start")],
+            [InlineKeyboardButton("< Back", callback_data="event_options")],
             [InlineKeyboardButton("Yes", callback_data="verify_balance"),]
         ]
         await context.bot.send_message(
@@ -669,7 +698,7 @@ async def verify_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=(f"You have insufficient balance in your wallet \n"
             f"Your current balance is ${user_balance} but the ticket price is ${event_price} \n"
             "Please top up your Mynt wallet!")
-        await update_default_message(update, context, text)
+        await update_default_event_message(update, context, text)
         return ROUTE
 
     # User has sufficient balance
@@ -723,7 +752,7 @@ async def complete_registration(update: Update, context: ContextTypes.DEFAULT_TY
         "conducting a raffle to randomly select the winners. \n"
         "We will notify you of the outcome via message. \n"
         "Thank you for your interest and we hope to see you at the event!")
-        await send_default_message(update, context, text)
+        await send_default_event_message(update, context, text)
         return ROUTE
     else:
         await update.message.reply_text("Sorry, something went wrong with your registration")
