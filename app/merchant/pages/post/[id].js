@@ -7,6 +7,7 @@ import { Box, Skeleton, SkeletonText } from "@chakra-ui/react";
 import QrReader from "react-qr-scanner";
 import axios from "axios";
 import Table from "../../components/dataTable";
+import ConfirmationModal from "../../components/confirmationModal"
 
 // const TELEGRAM_TOKEN = process.env.NEXT_PUBLIC_TEST_TOKEN
 const TELEGRAM_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT;
@@ -29,6 +30,8 @@ const Content = () => {
   const attendees = users.filter((user) => {
     return user.status.toLowerCase() === "successful";
   });
+  const [showModal, setShowModal] = useState(false);
+  const [parsedData, setParsedData] = useState(null);
 
   const openScanner = () => {
     if (scan) {
@@ -73,7 +76,7 @@ const Content = () => {
     if (data) {
       console.log(data);
       const parsedData = JSON.parse(data.text);
-
+      setParsedData(parsedData);
       // check if parsedData user id is inside the attendees userid
       const user = attendees.find((user) => {
         return user.id === parsedData.userId && user.status === "SUCCESSFUL";
@@ -88,74 +91,7 @@ const Content = () => {
       })
 
       if (parsedData.eventTitle === event.title && user) {
-        // alert("Verified!");
-        const text = "You have been successfully verified! Please enter the event venue :)"
-        const chat_id = parsedData.chatId;
-        console.log(chat_id);
-        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${chat_id}&text=${text}`;
-        fetch(telegramPush).then((res) => {
-          console.log(res);
-        });
-        const currentTime = new Date();
-        const redemptionTime = currentTime.toISOString();
-        const data = {
-          user_id: parsedData.userId,
-          event_title: parsedData.eventTitle,
-          status: "REDEEMED",
-          mint_account: user.mint_account,
-          redemption_time:  redemptionTime,
-        };
-
-        // find user in table array with matching id and update status to REDEEMED
-
-        const updatedTable = table.map((user) => {
-          if (user.id === parsedData.userId) {
-            user.status = "REDEEMED";
-          }
-          return user;
-        })
-
-        const updatedUsers = users.map((user) => {
-          if (user.id === parsedData.userId) {
-            user.status = "REDEEMED";
-          }
-          return user;
-        })
-
-        setUsers(updatedUsers)
-
-        setTable(updatedTable)
-
-
-        // getUserInfo(parsedData.userId).then((res) => {
-        //   setResult({
-        //     name: res.name,
-        //     userId: parsedData.userId,
-        //     eventTitle: parsedData.eventTitle,
-        //     status: res.status,
-        //     chat_id: parsedData.chatId,
-        //   });
-          
-        //   // find user in table array with matching name and update status to REDEEMED
-        //   const updatedTable = table.map((user) => {
-        //     if (user.name === res.name) {
-        //       user.status = "REDEEMED";
-        //     }
-        //     return user;
-        //   })
-
-        //   setTable(updatedTable)
-        // });
-
-        axios
-          .post(BASE + "/updateRegistration", data)
-          .then((response) => {
-            console.log(response.data);
-          })
-          .catch((error) => {
-            console.log(error);
-          });
-
+        setShowModal(true);
 
       } else if (parsedData.eventTitle === event.title && userUnsuccessful) {
         alert("User was not allocated a ticket during the raffle!");
@@ -168,6 +104,60 @@ const Content = () => {
         return;
       }
     }
+  };
+
+  function handleCancel() {
+    setShowModal(false);
+  }
+
+  const handleConfirm = () => {
+    const text = "You have been successfully verified! Please enter the event venue :)"
+    const chat_id = parsedData.chatId;
+    console.log(chat_id);
+    const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${chat_id}&text=${text}`;
+    fetch(telegramPush).then((res) => {
+      console.log(res);
+    });
+    const currentTime = new Date();
+    const redemptionTime = currentTime.toISOString();
+    const data = {
+      user_id: parsedData.userId,
+      event_title: parsedData.eventTitle,
+      status: "REDEEMED",
+      mint_account: user.mint_account,
+      redemption_time:  redemptionTime,
+    };
+
+    // find user in table array with matching id and update status to REDEEMED
+
+    const updatedTable = table.map((user) => {
+      if (user.id === parsedData.userId) {
+        user.status = "REDEEMED";
+      }
+      return user;
+    })
+
+    const updatedUsers = users.map((user) => {
+      if (user.id === parsedData.userId) {
+        user.status = "REDEEMED";
+      }
+      return user;
+    })
+
+    setUsers(updatedUsers)
+
+    setTable(updatedTable)
+
+    axios
+      .post(BASE + "/updateRegistration", data)
+      .then((response) => {
+        console.log(response.data);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+    // Update backend stuff
+    setShowModal(false);
   };
 
   const handleError = (err) => {
@@ -328,6 +318,16 @@ const Content = () => {
                     width: 320,
                   }}
                 />
+                {showModal && (
+                  <ConfirmationModal
+                  show={showModal}
+                  title="Confirmation"
+                  message={`This will redeem the ticket for the user. Are you sure you want to continue?`}
+
+                  onConfirm={handleConfirm}
+                  onCancel={handleCancel}
+                  />
+                )}
               </div>
             </>
           ) : null}
