@@ -23,6 +23,20 @@ const EventForm = () => {
       alert('Please fill out all required fields.');
       return;
     }
+    if (Number(price) <= 0) {
+      alert('Price must be a positive number.');
+      return;
+    }
+    if (Number(capacity) <= 0) {
+      alert('Capacity must be a positive number.');
+      return;
+    }
+    const eventDate = new Date(dateTime);
+    if (eventDate.getTime() <= Date.now()) {
+      alert('Event date must be a future date.');
+      return;
+    }
+
     const ipfsHash = await pinataUpload(image);
 
     uploadData({
@@ -87,6 +101,7 @@ const EventForm = () => {
       uploadBytes(storageRef, image!).then((snapshot) => {
         console.log('Uploaded a blob or file!');
       });
+      alert('Event created successfully!');
     }
 
   };
