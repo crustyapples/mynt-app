@@ -206,6 +206,10 @@ async def get_user_id_from_query(update):
     return user_id
 
 async def view_wallet_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    loading_message = "Retrieving wallet balance..."
+    message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
+
+
     user_id = await get_user_id_from_query(update)
     logger.info(f"Retrieving wallet balance for User: {user_id}")
     response = requests.get(endpoint_url + f"/viewWalletBalance/{user_id}")
@@ -213,6 +217,7 @@ async def view_wallet_balance(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_balance = response_data['balance']
 
     text=f'Your wallet balance is ${user_balance}'
+    await message.delete()
     await update_default_wallet_message(update, context, text)
     return ROUTE
 
@@ -235,6 +240,8 @@ def format_txn_history(response_data):
     return text
     
 async def view_transaction_history(update: Update, context: CallbackContext):
+    loading_message = "Retrieving transaction history..."
+    message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
     query = update.callback_query
     await query.answer()
     user_id = query.from_user.id
@@ -260,6 +267,7 @@ async def view_transaction_history(update: Update, context: CallbackContext):
 
     # Format the transactions as text
     text = format_txn_history(transactions)
+    await message.delete()
 
     # Create the inline keyboard for pagination
     keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="wallet_options"),],]
@@ -306,11 +314,14 @@ def get_successful_registrations(response_data):
     
     
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    loading_message = "Checking your tickets..."
+    message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
     user_id = await get_user_id_from_query(update)
     logger.info(f"Retrieving registrations for User: {user_id}")
     response = requests.get(endpoint_url + f"/getRegistrations/{user_id}")
     response_data = response.json()
 
+    await message.delete()
     if len(response_data) <= 0:
         await update_default_event_message(update, context, f"You have no registered events")
         return ROUTE
@@ -534,11 +545,14 @@ def format_registration_data(response_data):
    
     
 async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    loading_message = "Checking your registrations..."
+    message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
     user_id = await get_user_id_from_query(update)
     logger.info(f'Checking status for {user_id}')
     response = requests.get(endpoint_url + f"/getRegistrations/{user_id}")
     response_data = response.json()
     text=format_registration_data(response_data)
+    await message.delete()
     await update_default_event_message(update, context, text)
     return ROUTE
     
@@ -582,7 +596,7 @@ async def view_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Send loading message to user
     loading_message = "Loading events..."
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
+    message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
 
     query = update.callback_query
     await query.answer()
@@ -590,7 +604,7 @@ async def view_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
     response = requests.get(endpoint_url + "/viewEvents")
     response_data = response.json()
     event_array = format_event_data(response_data, context)
-    
+    await message.delete()
     if len(event_array) == 0:
         await update_default_event_message(update, context, "There are currently no ongoing events to register for")
     
