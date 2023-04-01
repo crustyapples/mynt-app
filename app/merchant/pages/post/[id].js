@@ -119,7 +119,12 @@ const Content = () => {
       console.log(res);
     });
     const currentTime = new Date();
-    const redemptionTime = currentTime.toISOString();
+    const offset = 480; // offset in minutes for GMT+8
+    const localTime = new Date(currentTime.getTime() + offset * 60 * 1000);
+    const redemptionTime = localTime.toISOString();
+    const user = attendees.find((user) => {
+      return user.id === parsedData.userId && user.status === "SUCCESSFUL";
+    });
     const data = {
       user_id: parsedData.userId,
       event_title: parsedData.eventTitle,
@@ -156,8 +161,13 @@ const Content = () => {
       .catch((error) => {
         console.log(error);
       });
-    // Update backend stuff
+
     setShowModal(false);
+    // Show alert
+    window.alert(`User: ${user.name} have been successfully verified!`);
+    
+    // Reload the page
+    window.location.reload();
   };
 
   const handleError = (err) => {
@@ -288,7 +298,40 @@ const Content = () => {
             <Table data={table} />
           </div>
           </div>
+              {scan ? (
+                <>
+                  <h1 className="mt-4 font-bold text-3xl text-center">Scanner</h1>
+                  <div className="mx-auto my-5">
+                    <p>Name: {result.name}</p>
+                    <QrReader
+                      delay={200}
+                      onError={handleError}
+                      onScan={handleScan}
+                      style={{
+                        height: 240,
+                        width: 320,
+                      }}
+                    />
+                    {showModal && (
+                      <ConfirmationModal
+                      show={showModal}
+                      title="Confirmation"
+                      message={`This will redeem the ticket for the user. Are you sure you want to continue?`}
 
+                      onConfirm={handleConfirm}
+                      onCancel={handleCancel}
+                      />
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </>
+          ) : (
+            <Box margin="2" padding="2" boxShadow="lg" bg="white">
+              <Skeleton height={64} />
+              <SkeletonText mt="4" noOfLines={4} spacing="4" skeletonHeight="42" />
+            </Box>
+          )}
           <div className="my-10 flex justify-center">
             <button
               onClick={openScanner}
@@ -304,40 +347,7 @@ const Content = () => {
             </button>
           </div>
 
-          {scan ? (
-            <>
-              <h1 className="mt-4 font-bold text-3xl text-center">Scanner</h1>
-              <div className="mx-auto my-5">
-                <p>Name: {result.name}</p>
-                <QrReader
-                  delay={200}
-                  onError={handleError}
-                  onScan={handleScan}
-                  style={{
-                    height: 240,
-                    width: 320,
-                  }}
-                />
-                {showModal && (
-                  <ConfirmationModal
-                  show={showModal}
-                  title="Confirmation"
-                  message={`This will redeem the ticket for the user. Are you sure you want to continue?`}
-
-                  onConfirm={handleConfirm}
-                  onCancel={handleCancel}
-                  />
-                )}
-              </div>
-            </>
-          ) : null}
-        </>
-      ) : (
-        <Box margin="2" padding="2" boxShadow="lg" bg="white">
-          <Skeleton height={64} />
-          <SkeletonText mt="4" noOfLines={4} spacing="4" skeletonHeight="42" />
-        </Box>
-      )}
+          
     </div>
   );
 };
