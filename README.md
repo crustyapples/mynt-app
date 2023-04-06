@@ -11,5 +11,5 @@ PROVIDER_TOKEN: Stripe (test) provider token for accepting payments
 
 Create a `.env` file in the **merchant** directory with the following variables:
 ```bash
-NEXT_PUBLIC_TEST_TOKEN: Telegram ID for the bot 
+NEXT_PUBLIC_TEST_TOKEN: Telegram ID for the bot
 ```
