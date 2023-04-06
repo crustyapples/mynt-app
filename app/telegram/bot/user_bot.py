@@ -456,8 +456,8 @@ async def get_topup_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    query= update.callback_query
-    await query.edit_message_text(
+    # query= update.callback_query
+    await update.message.reply_text(
         # chat_id=update.effective_chat.id,
         text="Please select an amount to top up your Mynt Wallet",
         reply_markup=reply_markup, 
