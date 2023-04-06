@@ -279,10 +279,10 @@ export default function Card({
               <ModalHeader>Confirm Event NFT Data</ModalHeader>
               <ModalCloseButton />
               <ModalBody>
-                {/* <div className="flex flex-wrap justify-center m-2">
+                <div className="flex flex-wrap justify-center m-2">
                   <App callback={callback} />
-                </div> */}
-                {/* {address.length > 0 ? ( */}
+                </div>
+                {address.length > 0 ? (
                   <RaffleForm
                     eventName2={title}
                     description2={description}
@@ -295,9 +295,9 @@ export default function Card({
                     address={address}
                     imageCID ={imageCID}
                   />
-                {/* ) : (
-                   <h1>Connect your Wallet to Conduct the Raffle!</h1>
-                 )} */}
+                ) : (
+                  <h1>Connect your Wallet to Conduct the Raffle!</h1>
+                )}
               </ModalBody>
 
               <ModalFooter>
@@ -320,7 +320,7 @@ export default function Card({
                 <div className="flex flex-wrap justify-center m-2">
                   <App callback={callback} />
                 </div>
-                {/* {address.length > 0 ? ( */}
+                {address.length > 0 ? (
                   <SelectForm
                     eventName2={title}
                     description2={description}
@@ -333,9 +333,9 @@ export default function Card({
                     symbol={symbol}
                     imageCID={imageCID}
                   />
-                {/* ) : (
+                ) : (
                   <h1>Connect your Wallet to Conduct the Selection!</h1>
-                )} */}
+                )}
               </ModalBody>
 
               <ModalFooter>
