@@ -78,8 +78,13 @@ const SelectForm = ({
         event_title: eventName2,
         status: "UNSUCCESSFUL",
       };
-
-      axios
+      console.log("updating losers")
+      const message = `Unsuccessful message for ${eventName2}`;
+      const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${losers[i].chat_id}&text=${message}`;
+      fetch(telegramPush).then((res) => {
+        console.log(res);
+      }).then(() => {
+        axios
         .post(BASE + "/updateRegistration", data)
         .then((response: { data: any }) => {
           console.log(response.data);
@@ -87,6 +92,8 @@ const SelectForm = ({
         .catch((error: any) => {
           console.log(error);
         });
+      })
+      
 
       const timestamp = new Date().toLocaleString("en-US", { timeZone: "UTC" });
 
