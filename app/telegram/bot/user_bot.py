@@ -528,9 +528,10 @@ view_events: View ongoing events
 check_registration: View status for users' registrations
 get_previous_registrations: API call to retrive previous registrations
 validate_registration: Validate event title and check previous registrations
-verify_balance: Check whether user has sufficient balance in in-app wallet
+process_registration: Check whether user has sufficient balance in in-app wallet
 complete_purchase: Send API request to save payment records
 complete_registration: Send API request to save registration records
+check_balance: Check the users balance against the event price
 =============================================================================================
 """
 
@@ -662,6 +663,16 @@ def get_previous_registrations(user_id, event_title):
         
     return False
 
+def check_balance(user_id, event_price):
+    logger.info(f"Verifying balance for user {user_id}")
+
+    response = requests.get(endpoint_url + f"/viewWalletBalance/{user_id}")
+    response_data = response.json()
+    user_balance = response_data['balance']
+    if user_balance < event_price:
+        return True
+    else:
+        return False
 
 async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Validating registration for user")
@@ -671,22 +682,30 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
     callback_data = update.callback_query.data ## (title_xx) The title starts from 5th index
     event_title = callback_data[6:]
     context.user_data["event_title"] = event_title
+    events_dict = context.user_data["events_dict"]
+    event_price = events_dict[event_title]
+    context.user_data["event_price"] = event_price
+
     
     user_id = query.from_user.id
     double_registration = get_previous_registrations(user_id, event_title)
+    invalid_balance = check_balance(user_id, event_price)
+
     if double_registration:
         text=("You have already registered for this event. \n"
             "You cannot register for the same event again.")
         await send_default_event_message(update, context, text)
+
+    elif invalid_balance:
+        text=("You have insufficient funds. \n"
+            "Please top up ur wallet in the Wallet menu.")
+        await send_default_event_message(update, context, text)
     
     else:
         # Prompt user for payment confirmation
-        events_dict = context.user_data["events_dict"]
-        event_price = events_dict[event_title]
-        context.user_data["event_price"] = event_price
         keyboard = [
             [InlineKeyboardButton("< Back", callback_data="event_options")],
-            [InlineKeyboardButton("Yes", callback_data="verify_balance"),]
+            [InlineKeyboardButton("Yes", callback_data="process_registration"),]
         ]
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -699,32 +718,29 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
     return ROUTE
 
 
-async def verify_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def process_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()  
 
-    # Verify user has sufficient balance in in-app wallet
     user_id = query.from_user.id
     context.user_data["user_id"] = user_id
-    logger.info(f"Verifying balance for user {user_id}")
-    response = requests.get(endpoint_url + f"/viewWalletBalance/{user_id}")
-    response_data = response.json()
-    user_balance = response_data['balance']
-    event_price = context.user_data["event_price"]
+    # # Verify user has sufficient balance in in-app wallet
+    # logger.info(f"Verifying balance for user {user_id}")
+    # response = requests.get(endpoint_url + f"/viewWalletBalance/{user_id}")
+    # response_data = response.json()
+    # user_balance = response_data['balance']
+    # event_price = context.user_data["event_price"]
 
-    # User has insufficient balance
-    if user_balance < event_price:
-        text=(f"You have insufficient balance in your wallet \n"
-            f"Your current balance is ${user_balance} but the ticket price is ${event_price} \n"
-            "Please top up your Mynt wallet!")
-        await update_default_event_message(update, context, text)
-        return ROUTE
-
-    # User has sufficient balance
-    else:
-        await complete_purchase(update, context)
-        await complete_registration(update, context)
-        return ROUTE
+    # # User has insufficient balance
+    # if user_balance < event_price:
+    #     text=(f"You have insufficient balance in your wallet \n"
+    #         f"Your current balance is ${user_balance} but the ticket price is ${event_price} \n"
+    #         "Please top up your Mynt wallet!")
+    #     await update_default_event_message(update, context, text)
+    #     return ROUTE
+    await complete_purchase(update, context)
+    await complete_registration(update, context)
+    return ROUTE
 
 
 async def complete_purchase(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -800,7 +816,7 @@ if __name__ == '__main__':
                 CallbackQueryHandler(view_events, pattern="^view_events$"),
                 CallbackQueryHandler(check_registration, pattern="^check_registration$"),
                 CallbackQueryHandler(validate_registration, pattern="^title_(.*)$"), ## Can handle any callback pattern,
-                CallbackQueryHandler(verify_balance, pattern="^verify_balance$"),
+                CallbackQueryHandler(process_registration, pattern="^process_registration$"),
                 CallbackQueryHandler(redeem, pattern="^redeem$"),
                 CommandHandler('start', start),
                 CommandHandler('cancel', cancel),
