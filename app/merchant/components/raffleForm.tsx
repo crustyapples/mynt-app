@@ -211,7 +211,8 @@ const RaffleForm = ({
     pinataMetadataUpload(metadata).then((res) => {
       uploadData(
         {
-          merchantKey: address[0],
+          // merchantKey: address[0],
+          merchantKey: "GjjWyt7avbnhkcJzWJYboA33ULNqFUH5ZQk58Wcd2n2z",
           symbol: symbol,
           title: eventName2,
           uri: `https://ipfs.io/ipfs/${res}`,
