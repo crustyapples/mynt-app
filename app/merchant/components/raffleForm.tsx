@@ -86,7 +86,7 @@ const RaffleForm = ({
         status: "UNSUCCESSFUL",
       };
       console.log("updating losers")
-      const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. We hope to see you at the next event! `;
+      const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
       const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${losers[i].chat_id}&text=${message}`;
       fetch(telegramPush).then((res) => {
         console.log(res);
