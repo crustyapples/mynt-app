@@ -3,9 +3,10 @@ import json
 import pyqrcode
 import requests
 import datetime
+import io
 from telegram import (
     Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, LabeledPrice, InlineKeyboardButton,
-    InlineKeyboardMarkup, PhotoSize
+    InlineKeyboardMarkup, PhotoSize, InputFile
 )
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -363,8 +364,13 @@ async def show_QR(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = f'Show this QR code to redeem your ticket for {ticket}'
     )
     url = pyqrcode.create(qr_information_str)
-    url.png(f'./qr_codes/{user_id}.png', scale=6)
-    await context.bot.send_photo(f'./qr_codes/{user_id}.png')
+    url.png(f'app/telegram/bot/qr_codes/{user_id}.png', scale=6)
+    with open(f'app/telegram/bot/qr_codes/{user_id}.png', 'rb') as f:
+        bio = io.BytesIO(f.read())
+
+    bio.seek(0)
+    await context.bot.send_photo(chat_id=user_chat_id, photo=InputFile(bio, filename='qr_code.png'))
+
     # add code to delete photo as well
     # current_path = os.getcwd()
     # if platform != 'darwin':  # windows
