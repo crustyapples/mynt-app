@@ -364,7 +364,7 @@ async def show_QR(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = f'Show this QR code to redeem your ticket for {ticket}'
     )
     url = pyqrcode.create(qr_information_str)
-    url.png(f'app/telegram/bot/qr_codes/{user_id}.png', scale=6)
+    url.png(f'./qr_codes/{user_id}.png', scale=6)
     with open(f'app/telegram/bot/qr_codes/{user_id}.png', 'rb') as f:
         bio = io.BytesIO(f.read())
 
