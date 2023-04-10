@@ -327,43 +327,44 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ROUTE
 
     else:
+        query = update.callback_query
         registered_events, reply_string = get_successful_registrations(response_data)
         if len(registered_events) == 0: # if raffle was not successful - he did not get the ticket
             await update_default_event_message(update, context, f"You have no successful registrations")
             return ROUTE
-        
         else:
             reply_string += '\n\n Which one would you like to redeem?'
-            reply_keyboard = [list(registered_events.keys())]
-            # very important to key the information
             context.user_data['registered_events'] = registered_events
-
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id, 
-                text="You have available tickets! You currently have: \n"
-                f'{reply_string}',
-                reply_markup=ReplyKeyboardMarkup(
-                    reply_keyboard, one_time_keyboard=True,
-                ),)
-            return SHOW_QR
+            keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="event_options"),]]
+            for event in registered_events:
+                keyboard.append([InlineKeyboardButton(event, callback_data=f'show_QR_{event}')])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text(
+                text="You have available tickets! Which would you like to redeem?",
+                reply_markup=reply_markup
+            )
+            return ROUTE
+        
 
 
 async def show_QR(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    ticket = update.message.text
-    username = update.message.from_user.username
-    user_id = update.message.from_user.id
+    ticket = update.callback_query.data[8:] ## (show_qr_xx) The title starts from 8th index
+    # ticket = update.message.text              
+    # username = update.message.from_user.username
+    user_id = await get_user_id_from_query(update)
     user_chat_id = update.effective_chat.id
     registered_events = context.user_data['registered_events']
     registered_events[ticket]['chatId'] = user_chat_id
     qr_information = registered_events[ticket]
     qr_information_str = json.dumps(qr_information)
 
-    await update.message.reply_text(
-        f'Show this QR code to redeem your ticket for {ticket}. This QR code belongs to {username}'
+    await context.bot.send_message(
+        chat_id= user_chat_id,
+        text = f'Show this QR code to redeem your ticket for {ticket}'
     )
     url = pyqrcode.create(qr_information_str)
     url.png(f'./qr_codes/{user_id}.png', scale=6)
-    await update.message.reply_photo(f'./qr_codes/{user_id}.png')
+    await context.bot.send_photo(f'./qr_codes/{user_id}.png')
     # add code to delete photo as well
     # current_path = os.getcwd()
     # if platform != 'darwin':  # windows
@@ -818,6 +819,7 @@ if __name__ == '__main__':
                 CallbackQueryHandler(validate_registration, pattern="^title_(.*)$"), ## Can handle any callback pattern,
                 CallbackQueryHandler(process_registration, pattern="^process_registration$"),
                 CallbackQueryHandler(redeem, pattern="^redeem$"),
+                CallbackQueryHandler(show_QR, pattern="^show_QR_(.*)$"),
                 CommandHandler('start', start),
                 CommandHandler('cancel', cancel),
             },
