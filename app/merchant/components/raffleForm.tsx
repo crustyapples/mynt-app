@@ -85,8 +85,13 @@ const RaffleForm = ({
         event_title: eventName2,
         status: "UNSUCCESSFUL",
       };
-
-      axios
+      console.log("updating losers")
+      const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
+      const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${losers[i].chat_id}&text=${message}`;
+      fetch(telegramPush).then((res) => {
+        console.log(res);
+      }).then(() => {
+        axios
         .post(BASE + "/updateRegistration", data)
         .then((response: { data: any }) => {
           console.log(response.data);
@@ -94,6 +99,8 @@ const RaffleForm = ({
         .catch((error: any) => {
           console.log(error);
         });
+      })
+      
 
       const timestamp = new Date().toLocaleString("en-US", { timeZone: "UTC" });
 
@@ -204,7 +211,8 @@ const RaffleForm = ({
     pinataMetadataUpload(metadata).then((res) => {
       uploadData(
         {
-          merchantKey: address[0],
+          // merchantKey: address[0],
+          merchantKey: "GjjWyt7avbnhkcJzWJYboA33ULNqFUH5ZQk58Wcd2n2z",
           symbol: symbol,
           title: eventName2,
           uri: `https://ipfs.io/ipfs/${res}`,

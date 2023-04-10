@@ -79,7 +79,7 @@ const SelectForm = ({
         status: "UNSUCCESSFUL",
       };
       console.log("updating losers")
-      const message = `Unsuccessful message for ${eventName2}`;
+      const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
       const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(losers[i] as any).chat_id}&text=${message}`;
       fetch(telegramPush).then((res) => {
         console.log(res);
@@ -204,7 +204,8 @@ const SelectForm = ({
     pinataMetadataUpload(metadata).then((res) => {
       uploadData(
         {
-          merchantKey: address[0],
+          // merchantKey: address[0],
+          merchantKey: "GjjWyt7avbnhkcJzWJYboA33ULNqFUH5ZQk58Wcd2n2z",
           symbol: symbol,
           title: eventName2,
           uri: `https://ipfs.io/ipfs/${res}`,

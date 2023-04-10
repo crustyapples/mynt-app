@@ -48,9 +48,8 @@ const firebaseConfig = {
 };
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
-const CUSTOM_DEVNET_RPC = "https://api.devnet.solana.com";
-// const CUSTOM_DEVNET_RPC = "https://rpc-devnet.helius.xyz/?api-key=d4ccf997-d0f7-4112-b129-93196d6a2742";
-
+// const CUSTOM_DEVNET_RPC = "https://api.devnet.solana.com";
+const CUSTOM_DEVNET_RPC = process.env.DEVNET_RPC;
 // Firebase Methods
 module.exports = {
   getWalletBalanceFirebase: async (userId) => {
