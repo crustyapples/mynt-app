@@ -457,9 +457,10 @@ async def get_topup_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("< Back to Menu", callback_data="wallet_options"),],
         [
-            InlineKeyboardButton("$10", callback_data="top_up_10"),
             InlineKeyboardButton("$50", callback_data="top_up_50"),
             InlineKeyboardButton("$100", callback_data="top_up_100"),
+            InlineKeyboardButton("$200", callback_data="top_up_200"),
+
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
