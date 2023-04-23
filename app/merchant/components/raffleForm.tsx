@@ -225,86 +225,92 @@ const RaffleForm = ({
       
     // });
   // }
-  function handleRaffleConfirm() {
+  async function handleRaffleConfirm() {
     setShowRaffleModal(false);
     setLoading(true);
-    //set check to see if raffle has been conducted before
-    //if status is not all pending, should refresh and give a warning that raffle has already been conducted before
-    // axios
-    // .get(BASE + "/getEventRegistrations/"+ eventName2)
-    // .then((response: { data: any }) => {
-    //   console.log(response.data);
-    // })
-    // .catch((error: any) => {
-    //   console.log(error);
-    // });
-
-    //if raffle hasnt been conducted before, then conduct raffle
+    
     console.log("conducting raffle")
-    const amount = parseInt(capacity2);
-    const winners = raffleSelect(users, amount);
-    const losers = users.filter((x) => !winners.includes(x));
-
-    console.log("winners", winners);
-    console.log("losers", losers);
-
-    for (let i = 0; i < losers.length; i++) {
-      const data = {
-        user_id: (losers[i] as any).id,
-        event_title: eventName2,
-        status: "UNSUCCESSFUL",
-      };
+    try{
+      //set check to see if raffle has been conducted before
+      const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+      const registrations = response.data;
+      console.log(registrations)
+      // Check if any registration has a status other than PENDING
+      const nonPendingRegistrations = registrations.filter((registration: { status: string }) => registration.status !== "PENDING");
       
-      axios
-      .post(BASE + "/updateRegistration", data)
-      .then((response: { data: any }) => {
-        console.log(response.data);
-      })
-      .catch((error: any) => {
-        console.log(error);
-      });
-      
-      const timestamp = new Date().toLocaleString("en-US", { timeZone: "UTC" });
+      if (nonPendingRegistrations.length > 0) {
+        // Exit the function if any registration is not pending
+        alert('Raffle has already been conducted!');
+        setLoading(false);
+        window.location.reload();
+        return;
+      }
+      const amount = parseInt(capacity2);
+      const winners = raffleSelect(users, amount);
+      const losers = users.filter((x) => !winners.includes(x));
 
-      const transaction = {
-        user_id: (losers[i] as any).id,
-        amount: price2,
-        transaction_type: "REFUND",
-        timestamp: timestamp,
-        event_title: eventName2,
-      };
+      console.log("winners", winners);
+      console.log("losers", losers);
 
-      axios
-        .post(BASE + "/raffleRefund", transaction)
+      for (let i = 0; i < losers.length; i++) {
+        const data = {
+          user_id: (losers[i] as any).id,
+          event_title: eventName2,
+          status: "UNSUCCESSFUL",
+        };
+        
+        axios
+        .post(BASE + "/updateRegistration", data)
         .then((response: { data: any }) => {
           console.log(response.data);
         })
         .catch((error: any) => {
           console.log(error);
         });
-    }
-
-    let counter = 0;
-
-    for (let i = 0; i < winners.length; i++) {
-      const registrationData = {
-        user_id: winners[i].id,
-        event_title: eventName2,
-        status: "SUCCESSFUL",
-      };
-      axios.post(BASE + "/updateRegistration", registrationData).then((response: { data: any }) => {
-        console.log(response.data);
-        counter += 1;
-      }).then(() => {
-        if (counter === winners.length) {
-          console.log("raffle conducted")
-          setLoading(false);
-          
-          window.location.reload();
-          
-        }
-      })
         
+        const timestamp = new Date().toLocaleString("en-US", { timeZone: "UTC" });
+
+        const transaction = {
+          user_id: (losers[i] as any).id,
+          amount: price2,
+          transaction_type: "REFUND",
+          timestamp: timestamp,
+          event_title: eventName2,
+        };
+
+        axios
+          .post(BASE + "/raffleRefund", transaction)
+          .then((response: { data: any }) => {
+            console.log(response.data);
+          })
+          .catch((error: any) => {
+            console.log(error);
+          });
+      }
+
+      let counter = 0;
+
+      for (let i = 0; i < winners.length; i++) {
+        const registrationData = {
+          user_id: winners[i].id,
+          event_title: eventName2,
+          status: "SUCCESSFUL",
+        };
+        axios.post(BASE + "/updateRegistration", registrationData).then((response: { data: any }) => {
+          console.log(response.data);
+          counter += 1;
+        }).then(() => {
+          if (counter === winners.length) {
+            console.log("raffle conducted")
+            setLoading(false);
+            
+            window.location.reload();
+            
+          }
+        }) 
+      }
+    } catch (error: any) {
+      console.log("Error when issuing tickets: "+ error);
     }
 
 
