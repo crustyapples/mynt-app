@@ -186,18 +186,6 @@ app.post("/ticketSale", (req, res) => {
   }
 });
 
-app.post("/mintNft", (req, res) => {
-  const { user_id, event_title } = req.body
-  try {
-    handleMint(user_id, event_title).then(result => {
-      console.log("/mintNft ")
-      res.status(200).json(result)
-    })
-  } catch (err) {
-    console.log("/mintNft error ", err)
-  }
-})
-
 app.post("/raffleRefund", (req, res) => {
   const { user_id, amount, transaction_type, timestamp, event_title } = req.body;
   const userBalanceObject = { user_id, amount, transaction_type };
@@ -239,18 +227,39 @@ app.post('/uploadMetadata', (req, res) => {
   .catch((err) => console.log(err));
 })
 
-const handleMint = async(userId, eventTitle) => {
-  const walletKeys = await getUserWalletFirebase(userId)
-  const userKeypair = Keypair.fromSecretKey(walletKeys.privateKey)
+// The body of the request to /mintNFT must contains an array of user_ids 
+// & the title of the event for which the NFT is to be minted
+app.post("/mintNft", (req, res) => {
+  const { user_ids, event_title } = req.body
+  try {
+    handleMint(user_ids, event_title).then(result => {
+      console.log("/mintNft ")
+      res.status(200).json(result)
+    })
+  } catch (err) {
+    console.log("/mintNft error ", err)
+  }
+})
 
-  const nftInfo = await getNftInfoFirebase(eventTitle)
-  console.log("Nft Info: ", nftInfo)
+const handleMint = async(userIds, eventTitle) => {
+  const mintTransactionArray = []
 
-  const { merchantKey, title, symbol, uri } = nftInfo[0]
-  const creatorKey = new PublicKey(merchantKey)
+  for (let index in userIds) {
+    userId = userIds[index]
 
-  const mintTransaction = await mintNft(userKeypair, creatorKey, title, symbol, uri)
-  return mintTransaction
+    const walletKeys = await getUserWalletFirebase(userId)
+    const userKeypair = Keypair.fromSecretKey(walletKeys.privateKey)
+  
+    const nftInfo = await getNftInfoFirebase(eventTitle)
+    console.log("Nft Info: ", nftInfo)
+  
+    const { merchantKey, title, symbol, uri } = nftInfo[0]
+    const creatorKey = new PublicKey(merchantKey)
+  
+    const mintTransaction = await mintNft(userKeypair, creatorKey, title, symbol, uri)
+    mintTransactionArray.push(mintTransaction)
+  }
+  return mintTransactionArray
 }
 
 // Start the Express.js web server

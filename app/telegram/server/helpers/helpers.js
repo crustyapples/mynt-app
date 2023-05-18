@@ -531,7 +531,7 @@ module.exports = {
       await createAndInitializeAccounts();
       const response = await sendMintTransaction();
       return {
-        mintAccount: mintAccount.publicKey.toString(),
+        // mintAccount: mintAccount.publicKey.toString(),
         transaction: response,
       };
     } catch (err) {
