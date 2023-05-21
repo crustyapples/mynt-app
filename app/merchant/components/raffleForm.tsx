@@ -36,6 +36,10 @@ const RaffleForm = ({
   imageCID,
 }: EventFormProps) => {
   const [loading, setLoading] = useState(false);
+  const [showRaffleModal, setShowRaffleModal] = useState(false);
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [winners, setWinners] = useState<any[]>([]);
+  const [losers, setLosers] = useState<any[]>([]);
 
   function dateFormat(dateString: string | number | Date) {
     let date = new Date(dateString);
@@ -56,101 +60,21 @@ const RaffleForm = ({
     return result;
   };
 
-  function raffleSelect(users: any, amount: number) {
-    const result = [];
+  async function raffleSelect(users: any, amount: number) {
+    const winners: any[] = [];
     const tempArr = [...users];
     for (let i = 0; i < amount; i++) {
       if (tempArr.length === 0) {
         break;
       }
       const randomIndex = Math.floor(Math.random() * tempArr.length);
-      result.push(tempArr[randomIndex]);
+      winners.push(tempArr[randomIndex]);
       tempArr.splice(randomIndex, 1);
     }
-    return result;
+    const losers = users.filter((x: any) => !winners.includes(x));
+    
+    return {winners, losers};
   }
-// old function in process of refactoring
-  // async function conductRaffle() {
-  //   console.log("conducting raffle")
-  //   const amount = parseInt(capacity2);
-  //   const winners = raffleSelect(users, amount);
-  //   const losers = users.filter((x) => !winners.includes(x));
-
-  //   console.log("winners", winners);
-  //   console.log("losers", losers);
-
-  //   for (let i = 0; i < losers.length; i++) {
-  //     const data = {
-  //       user_id: (losers[i] as any).id,
-  //       event_title: eventName2,
-  //       status: "UNSUCCESSFUL",
-  //     };
-      
-  //     axios
-  //     .post(BASE + "/updateRegistration", data)
-  //     .then((response: { data: any }) => {
-  //       console.log(response.data);
-  //     })
-  //     .catch((error: any) => {
-  //       console.log(error);
-  //     });
-      
-  //     const timestamp = new Date().toLocaleString("en-US", { timeZone: "UTC" });
-
-  //     const transaction = {
-  //       user_id: (losers[i] as any).id,
-  //       amount: price2,
-  //       transaction_type: "REFUND",
-  //       timestamp: timestamp,
-  //       event_title: eventName2,
-  //     };
-
-  //     axios
-  //       .post(BASE + "/raffleRefund", transaction)
-  //       .then((response: { data: any }) => {
-  //         console.log(response.data);
-  //       })
-  //       .catch((error: any) => {
-  //         console.log(error);
-  //       });
-  //   }
-
-  //   let counter = 0;
-
-  //   for (let i = 0; i < winners.length; i++) {
-  //     const data = {
-  //       user_id: winners[i].id,
-  //       event_title: eventName2,
-  //       status: "SUCCESSFUL",
-  //     };
-
-
-  //     axios.post(BASE + "/mintNFT", data).then((response: { data: any }) => {
-  //       console.log(response.data.mintAccount);
-  //       const ticketLink = `https://solana.fm/address/${response.data.mintAccount}/metadata?cluster=devnet-qn1`;
-        
-  //       const registrationData = {
-  //         user_id: winners[i].id,
-  //         event_title: eventName2,
-  //         status: "SUCCESSFUL",
-  //         mint_account: response.data.mintAccount,
-  //       };
-  //       axios.post(BASE + "/updateRegistration", registrationData).then((response: { data: any }) => {
-  //         console.log(response.data);
-  //         counter += 1;
-  //       }).then(() => {
-  //         if (counter === winners.length) {
-  //           console.log("raffle conducted")
-  //           setLoading(false);
-            
-  //           window.location.reload();
-            
-  //         }
-  //       })
-        
-  //     })
-  //   }
-  // }
 
   async function notifyUsers(winners: string[], losers: string[]) {
     for (let i = 0; i < winners.length; i++) {
@@ -172,9 +96,6 @@ const RaffleForm = ({
     }
   }
 
-  const [showRaffleModal, setShowRaffleModal] = useState(false);
-  const [showIssueModal, setShowIssueModal] = useState(false);
-
   function handleRaffleClick() {
     setShowRaffleModal(true);
   }
@@ -183,48 +104,6 @@ const RaffleForm = ({
     setShowIssueModal(true);
   }
 
-  // function handleRaffleConfirm() {
-  //   setShowRaffleModal(false);
-
-    // console.log(eventName2, dateTime2, venue2, capacity2);
-    // Upload image to /uploadFile endpoint using Pinata
-    // setLoading(true);
-    // const metadata = {
-    //   title: eventName2,
-    //   symbol: symbol,
-    //   description: description2,
-    //   image: `https://ipfs.io/ipfs/${imageCID}`,
-    //   attributes: [
-    //     { trait_type: "Date/Time", value: dateFormat(dateTime2) },
-    //     { trait_type: "Ticket Price", value: price2 },
-    //     { trait_type: "Venue", value: venue2 },
-    //   ],
-    //   properties: {
-    //     files: [
-    //       {
-    //         uri: `https://ipfs.io/ipfs/${imageCID}`,
-    //         type: "image/png",
-    //       },
-    //     ],
-    //     category: null,
-    //   },
-    // };
-    // console.log("This is the metadata: "+metadata);
-    
-      
-    // pinataMetadataUpload(metadata).then((res) => {
-    //   uploadData(
-    //     {
-    //       // merchantKey: address[0],
-    //       merchantKey: "GjjWyt7avbnhkcJzWJYboA33ULNqFUH5ZQk58Wcd2n2z",
-    //       symbol: symbol,
-    //       title: eventName2,
-    //       uri: `https://ipfs.io/ipfs/${res}`,
-    //     }
-    //   );
-      
-    // });
-  // }
   async function handleRaffleConfirm() {
     setShowRaffleModal(false);
     setLoading(true);
@@ -246,11 +125,19 @@ const RaffleForm = ({
         return;
       }
       const amount = parseInt(capacity2);
-      const winners = raffleSelect(users, amount);
-      const losers = users.filter((x) => !winners.includes(x));
+      const result = await raffleSelect(users, amount);
+      const winners = result.winners
+      const losers = result.losers
 
       console.log("winners", winners);
       console.log("losers", losers);
+
+      if (winners.length == 0) {
+        alert('Error when selecting winners');
+        setLoading(false);
+        window.location.reload();
+        return;
+      }
 
       for (let i = 0; i < losers.length; i++) {
         const data = {
@@ -318,6 +205,14 @@ const RaffleForm = ({
   // this is the function that should handle the minting and notification
   function handleIssueConfirm() {
     setShowIssueModal(false);
+    console.log(eventName2, dateTime2, venue2, capacity2);
+    setLoading(true);
+    
+    // there should be a method that reconstructs the winners and losers array and set as a state
+    const result = getRaffleResult()
+    // there should also be a check to see if its possible, if there are no winners, it should prompt the user
+    // to conduct the raffle first
+    issueNfts()    
   }
 
   const uploadData = (
@@ -335,11 +230,62 @@ const RaffleForm = ({
       const dbInstance = doc(database, "/nfts", title + dateTime2);
       setDoc(dbInstance, data).then(() => {
         console.log("finished uploading event nft data");
-        // conductRaffle()
       });
     }
     
   };
+  async function issueNfts() {
+    console.log("uploading metadata")
+    const metadata = {
+      title: eventName2,
+      symbol: symbol,
+      description: description2,
+      image: `https://ipfs.io/ipfs/${imageCID}`,
+      attributes: [
+        { trait_type: "Date/Time", value: dateFormat(dateTime2) },
+        { trait_type: "Ticket Price", value: price2 },
+        { trait_type: "Venue", value: venue2 },
+      ],
+      properties: {
+        files: [
+          {
+            uri: `https://ipfs.io/ipfs/${imageCID}`,
+            type: "image/png",
+          },
+        ],
+        category: null,
+      },
+    };
+    console.log("This is the metadata: "+metadata);
+    
+      
+    await pinataMetadataUpload(metadata).then((res) => {
+      uploadData(
+        {
+          // merchantKey: address[0],
+          merchantKey: "GjjWyt7avbnhkcJzWJYboA33ULNqFUH5ZQk58Wcd2n2z",
+          symbol: symbol,
+          title: eventName2,
+          uri: `https://ipfs.io/ipfs/${res}`,
+        }
+      );
+      
+    });
+
+    console.log("Issuing NFTs to winners")
+    for (let i = 0; i < winners.length; i++) {
+      const data = {
+        user_id: winners[i].id,
+        event_title: eventName2,
+        status: "SUCCESSFUL",
+      };
+
+      axios.post(BASE + "/mintNFT", data).then((response: { data: any }) => {
+        console.log(response.data.mintAccount);
+        const ticketLink = `https://solana.fm/address/${response.data.mintAccount}/metadata?cluster=devnet-qn1`;
+      })
+    }
+  }
 
   return (
     <>
