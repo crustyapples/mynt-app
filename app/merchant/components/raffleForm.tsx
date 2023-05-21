@@ -38,6 +38,8 @@ const RaffleForm = ({
   const [loading, setLoading] = useState(false);
   const [showRaffleModal, setShowRaffleModal] = useState(false);
   const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+
   const [winners, setWinners] = useState<any[]>([]);
   const [losers, setLosers] = useState<any[]>([]);
 
@@ -86,6 +88,10 @@ const RaffleForm = ({
 
   function handleIssueClick() {
     setShowIssueModal(true);
+  }
+
+  function handleNotifyClick() {
+    setShowNotifyModal(true);
   }
 
   async function handleRaffleConfirm() {
@@ -194,10 +200,16 @@ const RaffleForm = ({
     console.log(eventName2, dateTime2, venue2, capacity2);
     setLoading(true);
     
-    const result = await getRaffleResult()
-    console.log(result)
+    const result = await getRaffleResult();
+    console.log(result);
     // once the winners and losers arrays are derived, issue the NFTs to them
-    issueNfts()    
+    issueNfts();  
+  }
+
+  async function handleNotifyConfirm() {
+    setShowIssueModal(false);
+    setLoading(true);
+    notifyUsers();
   }
 
   // This method conducts the raffle, and returns an array of winners and losers
@@ -232,7 +244,7 @@ const RaffleForm = ({
     const losers = users.filter((x: any) => !winners.includes(x));
     // Check to see if raffle has been conducted before
     if (winners.length == 0) {
-      alert('Please conduct the raffle first before issuing Nfts!');
+      alert('Please conduct the raffle first!');
       setLoading(false);
       window.location.reload();
       return;
@@ -242,26 +254,6 @@ const RaffleForm = ({
     }
     
     return {winners, losers};
-  }
-
-  async function notifyUsers() {
-    for (let i = 0; i < winners.length; i++) {
-      console.log("updating winners")
-      const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
-        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${winners[i].chat_id}&text=${message}`;
-        fetch(telegramPush).then((res) => {
-          console.log(res);
-        })
-    }
-
-    for (let i = 0; i < losers.length; i++) {
-      console.log("updating losers")
-      const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
-      const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(losers[i] as any).chat_id}&text=${message}`;
-      fetch(telegramPush).then((res) => {
-        console.log(res);
-      })
-    }
   }
 
   async function issueNfts() {
@@ -317,6 +309,31 @@ const RaffleForm = ({
       window.location.reload();
   }
 
+  async function notifyUsers() {
+    const result = await getRaffleResult();
+    console.log(result);
+
+    for (let i = 0; i < winners.length; i++) {
+      console.log("updating winners")
+      const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
+        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${winners[i].chat_id}&text=${message}`;
+        fetch(telegramPush).then((res) => {
+          console.log(res);
+        })
+    }
+
+    for (let i = 0; i < losers.length; i++) {
+      console.log("updating losers")
+      const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
+      const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(losers[i] as any).chat_id}&text=${message}`;
+      fetch(telegramPush).then((res) => {
+        console.log(res);
+      })
+    }
+    setLoading(false);
+    window.location.reload();
+  }
+
   return (
     <>
       {loading ? (
@@ -346,22 +363,36 @@ const RaffleForm = ({
             className="w-full text-white bg-black hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mt-4"
             onClick={handleIssueClick}
           >
-            Issue Tickets and Notify users
+            Issue Tickets
+          </button>
+          <button
+            type="button"
+            className="w-full text-white bg-black hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mt-4"
+            onClick={handleNotifyClick}
+          >
+            Notify Users
           </button>
           <ConfirmationModal
-        show={showRaffleModal}
-        title="Raffle Confirmation"
-        message="This will use a raffle system to determine which user will win the tickets. Are you sure you want to continue?"
-        onConfirm={handleRaffleConfirm}
-        onCancel={() => setShowRaffleModal(false)}
-      />
-      <ConfirmationModal
-        show={showIssueModal}
-        title="Issue Confirmation"
-        message="This will issue the tickets on the blockchain and notify users on telegram. Are you sure you want to continue?"
-        onConfirm={handleIssueConfirm}
-        onCancel={() => setShowIssueModal(false)}
-      />
+          show={showRaffleModal}
+          title="Raffle Confirmation"
+          message="This will use a raffle system to determine which user will win the tickets. Are you sure you want to continue?"
+          onConfirm={handleRaffleConfirm}
+          onCancel={() => setShowRaffleModal(false)}
+          />
+          <ConfirmationModal
+            show={showIssueModal}
+            title="Issue Confirmation"
+            message="This will issue the tickets on the blockchain. Are you sure you want to continue?"
+            onConfirm={handleIssueConfirm}
+            onCancel={() => setShowIssueModal(false)}
+          />
+          <ConfirmationModal
+            show={showNotifyModal}
+            title="Notify Confirmation"
+            message="This will notify users of their registration status on telegram. Are you sure you want to continue?"
+            onConfirm={handleNotifyConfirm}
+            onCancel={() => setShowNotifyModal(false)}
+          />
         </form>
       )}
     </>
