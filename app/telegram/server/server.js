@@ -257,7 +257,8 @@ const handleMint = async(userIds, eventTitle) => {
     const creatorKey = new PublicKey(merchantKey)
   
     const mintTransaction = await mintNft(userKeypair, creatorKey, title, symbol, uri)
-    mintTransactionArray.push(mintTransaction)
+    console.log("User ID: ", userId)
+    mintTransactionArray.push({[userId]: mintTransaction.mintAccountAddress})
   }
   return mintTransactionArray
 }
