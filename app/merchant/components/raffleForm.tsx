@@ -60,41 +60,25 @@ const RaffleForm = ({
     return result;
   };
 
-  async function raffleSelect(users: any, amount: number) {
-    const winners: any[] = [];
-    const tempArr = [...users];
-    for (let i = 0; i < amount; i++) {
-      if (tempArr.length === 0) {
-        break;
-      }
-      const randomIndex = Math.floor(Math.random() * tempArr.length);
-      winners.push(tempArr[randomIndex]);
-      tempArr.splice(randomIndex, 1);
+  const uploadData = async(
+    data:
+      | {
+          merchantKey: string;
+          symbol: string;
+          title: string;
+          uri: string;
+        }
+  ) => {
+    console.log("uploading event nft data")
+    if (data) {
+      const title = data.title + "-nft";
+      const dbInstance = doc(database, "/nfts", title + dateTime2);
+      await setDoc(dbInstance, data).then(() => {
+        console.log("finished uploading event nft data");
+      });
     }
-    const losers = users.filter((x: any) => !winners.includes(x));
     
-    return {winners, losers};
-  }
-
-  async function notifyUsers(winners: string[], losers: string[]) {
-    for (let i = 0; i < winners.length; i++) {
-      console.log("updating winners")
-      const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
-        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${winners[i].chat_id}&text=${message}`;
-        fetch(telegramPush).then((res) => {
-          console.log(res);
-        })
-    }
-
-    for (let i = 0; i < losers.length; i++) {
-      console.log("updating losers")
-      const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
-      const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(losers[i] as any).chat_id}&text=${message}`;
-      fetch(telegramPush).then((res) => {
-        console.log(res);
-      })
-    }
-  }
+  };
 
   function handleRaffleClick() {
     setShowRaffleModal(true);
@@ -124,6 +108,8 @@ const RaffleForm = ({
         window.location.reload();
         return;
       }
+
+      // If raffle havent been conducted before, conduct raffle 
       const amount = parseInt(capacity2);
       const result = await raffleSelect(users, amount);
       const winners = result.winners
@@ -139,6 +125,7 @@ const RaffleForm = ({
         return;
       }
 
+      // Update registration status of winners and losers
       for (let i = 0; i < losers.length; i++) {
         const data = {
           user_id: (losers[i] as any).id,
@@ -200,40 +187,83 @@ const RaffleForm = ({
       console.log("Error when issuing tickets: "+ error);
     }
 
-
   }
-  // this is the function that should handle the minting and notification
-  function handleIssueConfirm() {
+
+  async function handleIssueConfirm() {
     setShowIssueModal(false);
     console.log(eventName2, dateTime2, venue2, capacity2);
     setLoading(true);
     
-    // there should be a method that reconstructs the winners and losers array and set as a state
-    const result = getRaffleResult()
-    // there should also be a check to see if its possible, if there are no winners, it should prompt the user
-    // to conduct the raffle first
+    const result = await getRaffleResult()
+    console.log(result)
+    // once the winners and losers arrays are derived, issue the NFTs to them
     issueNfts()    
   }
 
-  const uploadData = (
-    data:
-      | {
-          merchantKey: string;
-          symbol: string;
-          title: string;
-          uri: string;
-        }
-  ) => {
-    console.log("uploading event nft data")
-    if (data) {
-      const title = data.title + "-nft";
-      const dbInstance = doc(database, "/nfts", title + dateTime2);
-      setDoc(dbInstance, data).then(() => {
-        console.log("finished uploading event nft data");
-      });
+  // This method conducts the raffle, and returns an array of winners and losers
+  async function raffleSelect(users: any, amount: number) {
+    const winners: any[] = [];
+    const tempArr = [...users];
+    for (let i = 0; i < amount; i++) {
+      if (tempArr.length === 0) {
+        break;
+      }
+      const randomIndex = Math.floor(Math.random() * tempArr.length);
+      winners.push(tempArr[randomIndex]);
+      tempArr.splice(randomIndex, 1);
+    }
+    const losers = users.filter((x: any) => !winners.includes(x));
+    
+    return {winners, losers};
+  }
+
+  // This method should be able to derive the winners and losers from the registration status, assuming that the raffle has been conducted already
+  async function getRaffleResult() {
+    // Get all registrations for this event
+    const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+    const registrations = response.data;
+    // Get resgistrations which are successful
+    const successfulRegistrations = registrations.filter((registration: { status: any }) => registration.status == "SUCCESSFUL");
+    const successfulUserIds = successfulRegistrations.map((registration: { userId: any }) => registration.userId);
+
+    // Get user objects from successful registraions and construcwt winner array
+    const winners = users.filter((user: any) => successfulUserIds.includes(user.id));
+    // Then use the not include clause to get loser array
+    const losers = users.filter((x: any) => !winners.includes(x));
+    // Check to see if raffle has been conducted before
+    if (winners.length == 0) {
+      alert('Please conduct the raffle first before issuing Nfts!');
+      setLoading(false);
+      window.location.reload();
+      return;
+    } else{
+      setWinners(winners);
+      setLosers(losers);
     }
     
-  };
+    return {winners, losers};
+  }
+
+  async function notifyUsers() {
+    for (let i = 0; i < winners.length; i++) {
+      console.log("updating winners")
+      const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
+        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${winners[i].chat_id}&text=${message}`;
+        fetch(telegramPush).then((res) => {
+          console.log(res);
+        })
+    }
+
+    for (let i = 0; i < losers.length; i++) {
+      console.log("updating losers")
+      const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
+      const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(losers[i] as any).chat_id}&text=${message}`;
+      fetch(telegramPush).then((res) => {
+        console.log(res);
+      })
+    }
+  }
+
   async function issueNfts() {
     console.log("uploading metadata")
     const metadata = {
@@ -259,8 +289,8 @@ const RaffleForm = ({
     console.log("This is the metadata: "+metadata);
     
       
-    await pinataMetadataUpload(metadata).then((res) => {
-      uploadData(
+    await pinataMetadataUpload(metadata).then(async (res) => {
+      await uploadData(
         {
           // merchantKey: address[0],
           merchantKey: "GjjWyt7avbnhkcJzWJYboA33ULNqFUH5ZQk58Wcd2n2z",
@@ -269,22 +299,22 @@ const RaffleForm = ({
           uri: `https://ipfs.io/ipfs/${res}`,
         }
       );
-      
     });
-
     console.log("Issuing NFTs to winners")
-    for (let i = 0; i < winners.length; i++) {
+
+      const userIds = winners.map((user) => user.id);
+
       const data = {
-        user_id: winners[i].id,
+        user_id: userIds,
         event_title: eventName2,
         status: "SUCCESSFUL",
       };
 
       axios.post(BASE + "/mintNFT", data).then((response: { data: any }) => {
-        console.log(response.data.mintAccount);
-        const ticketLink = `https://solana.fm/address/${response.data.mintAccount}/metadata?cluster=devnet-qn1`;
+        console.log(response);
       })
-    }
+      setLoading(false);
+      window.location.reload();
   }
 
   return (
