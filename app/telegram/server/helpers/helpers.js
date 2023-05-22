@@ -531,11 +531,12 @@ module.exports = {
       await createAndInitializeAccounts();
       const response = await sendMintTransaction();
       return {
-        // mintAccount: mintAccount.publicKey.toString(),
-        transaction: response,
+        mintAccountAddress: mintAccount.publicKey.toString(),
+        // transaction: response,
       };
     } catch (err) {
       console.log("mintNft error ", err);
+      return {mintAccountAddress: "Minting failed"}
     }
   },
 
