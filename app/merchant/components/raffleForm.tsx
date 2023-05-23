@@ -201,9 +201,15 @@ const RaffleForm = ({
     setLoading(true);
     
     const result = await getRaffleResult();
-    console.log(result);
-    // once the winners and losers arrays are derived, issue the NFTs to them
-    issueNfts();  
+    if (result) {
+      const winners = result.winners;
+      const losers = result.losers;
+      // once the winners and losers arrays are derived, issue the NFTs to them
+      issueNfts(winners, losers);
+    } else {
+      // Handle the case when result is undefined
+      console.error("Failed to get raffle result");
+    } 
   }
 
   async function handleNotifyConfirm() {
@@ -256,7 +262,7 @@ const RaffleForm = ({
     return {winners, losers};
   }
 
-  async function issueNfts() {
+  async function issueNfts(winners: any[], losers: any[]) {
     console.log("uploading metadata")
     const metadata = {
       title: eventName2,
@@ -293,45 +299,49 @@ const RaffleForm = ({
       );
     });
     console.log("Issuing NFTs to winners")
+    const userIds = winners.map((user) => user.id);
 
-      const userIds = winners.map((user) => user.id);
+    const data = {
+      user_ids: userIds,
+      event_title: eventName2,
+      status: "SUCCESSFUL",
+    };
 
-      const data = {
-        user_id: userIds,
-        event_title: eventName2,
-        status: "SUCCESSFUL",
-      };
-
-      axios.post(BASE + "/mintNFT", data).then((response: { data: any }) => {
-        console.log(response);
-      })
-      setLoading(false);
-      window.location.reload();
+    axios.post(BASE + "/mintNFT", data).then((response) => {
+      console.log(response.data);
+    })
+    setLoading(false);
+    window.location.reload();
   }
 
   async function notifyUsers() {
     const result = await getRaffleResult();
-    console.log(result);
+    if (result){
+      const winners = result.winners;
 
-    for (let i = 0; i < winners.length; i++) {
-      console.log("updating winners")
-      const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
-        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${winners[i].chat_id}&text=${message}`;
+      for (let i = 0; i < winners.length; i++) {
+        console.log("updating winners")
+        const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
+          const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${winners[i].chat_id}&text=${message}`;
+          fetch(telegramPush).then((res) => {
+            console.log(res);
+          })
+      }
+
+      for (let i = 0; i < losers.length; i++) {
+        console.log("updating losers")
+        const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
+        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(losers[i] as any).chat_id}&text=${message}`;
         fetch(telegramPush).then((res) => {
           console.log(res);
         })
+      }
+      setLoading(false);
+      window.location.reload();
+    }else{
+      console.error("Failed to get raffle result");
     }
-
-    for (let i = 0; i < losers.length; i++) {
-      console.log("updating losers")
-      const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
-      const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(losers[i] as any).chat_id}&text=${message}`;
-      fetch(telegramPush).then((res) => {
-        console.log(res);
-      })
-    }
-    setLoading(false);
-    window.location.reload();
+    
   }
 
   return (
