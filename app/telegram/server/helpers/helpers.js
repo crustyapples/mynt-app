@@ -5,6 +5,7 @@ const {
   createInitializeMintInstruction,
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
+  createTransferInstruction,
 } = require("@solana/spl-token");
 const {
   Keypair,
@@ -15,6 +16,9 @@ const {
   SystemProgram,
   Transaction,
   SYSVAR_RENT_PUBKEY,
+  sendAndConfirmTransaction,
+  TransactionMessage,
+  VersionedTransaction,
 } = require("@solana/web3.js");
 const { AnchorProvider, Program } = require("@project-serum/anchor");
 const firebase = require("firebase/app");
@@ -48,8 +52,7 @@ const firebaseConfig = {
 };
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
-// const CUSTOM_DEVNET_RPC = "https://api.devnet.solana.com";
-const CUSTOM_DEVNET_RPC = process.env.DEVNET_RPC;
+// const CUSTOM_DEVNET_RPC = process.env.DEVNET_RPC;
 // Firebase Methods
 module.exports = {
   getWalletBalanceFirebase: async (userId) => {
@@ -95,7 +98,7 @@ module.exports = {
       name: userInfo.user_name,
       contact: userInfo.user_contact,
       balance: 0,
-      chat_id: userInfo.chat_id
+      chat_id: userInfo.chat_id,
     };
     // Doc ID needs to be a string
     await setDoc(doc(db, "users", userInfo.user_id.toString()), docData);
@@ -157,15 +160,15 @@ module.exports = {
       await updateDoc(docRef, { totalDeposits: updatedDeposits });
       console.log(`Bank Total Deposits updated to be ${updatedDeposits}`);
     }
-    if (bankBalanceInfo.transaction_type == 'SALE') {
+    if (bankBalanceInfo.transaction_type == "SALE") {
       const currentSales = docSnap.data().totalSales;
-      const updatedSales= currentSales + bankBalanceInfo.amount;
+      const updatedSales = currentSales + bankBalanceInfo.amount;
       await updateDoc(docRef, { totalSales: updatedSales });
       console.log(`Bank Total Sales updated to be ${updatedSales}`);
     }
-    if (bankBalanceInfo.transaction_type == 'REFUND') {
+    if (bankBalanceInfo.transaction_type == "REFUND") {
       const currentSales = docSnap.data().totalSales;
-      const updatedSales= currentSales - bankBalanceInfo.amount;
+      const updatedSales = currentSales - bankBalanceInfo.amount;
 
       await updateDoc(docRef, {
         totalSales: updatedSales,
@@ -217,9 +220,7 @@ module.exports = {
   getAllRegistrationsFirebase: async () => {
     const registrationRef = collection(db, "registrations");
     // UserId needs to be converted from number to string prior to the check
-    const filter = query(
-      registrationRef
-    );
+    const filter = query(registrationRef);
     const querySnapshot = await getDocs(filter);
     const registrationInfos = [];
     querySnapshot.forEach((doc) => {
@@ -235,7 +236,7 @@ module.exports = {
       userId: registrationInfo.user_id.toString(),
       eventTitle: registrationInfo.event_title,
       status: registrationInfo.status,
-      registration_time: registrationInfo.registration_time
+      registration_time: registrationInfo.registration_time,
     };
     // Doc ID needs to be a string
     const docId = docData.userId + docData.eventTitle;
@@ -247,7 +248,7 @@ module.exports = {
       userId: registrationInfo.user_id.toString(),
       eventTitle: registrationInfo.event_title,
       status: registrationInfo.status,
-      mint_account: registrationInfo.mint_account
+      mint_account: registrationInfo.mint_account,
     };
 
     // Include redemption_time only if it exists
@@ -258,7 +259,7 @@ module.exports = {
     if (registrationInfo.mint_account) {
       docData.mint_account = registrationInfo.mint_account;
     }
-    
+
     const docId = docData.userId + docData.eventTitle;
     const docRef = doc(db, "registrations", docId.toString());
 
@@ -292,97 +293,28 @@ module.exports = {
     }
   },
 
-  
   getUserWalletFirebase: async (userId) => {
     const createUserWalletFirebase = async (userId) => {
-      try {
-        console.log("New user detected, creating new wallet")
-        const customConnection = new Connection(CUSTOM_DEVNET_RPC);
+      console.log("New user detected, creating new wallet");
 
-        // Generate a new key pair for the Solana network
-        const keypair = Keypair.generate();
-        const publicKey = keypair.publicKey;
-        const privateKey = keypair.secretKey;
-        console.log("Key pair created!")
-        const airdrop = await customConnection.requestAirdrop(
-          publicKey,
-          2 * LAMPORTS_PER_SOL
-        );
-        console.log(`Airdrop transaction for ${publicKey}`, airdrop);
-        // Save public & private key in user's record
-        const userRef = doc(db, "users", userId.toString());
-        await updateDoc(userRef, {
-          publicKey: publicKey.toString(),
-          privateKey: Array.from(privateKey),
-        }); 
+      // Generate a new key pair for the Solana network
+      const keypair = Keypair.generate();
+      const publicKey = keypair.publicKey;
+      const privateKey = keypair.secretKey;
 
-        return { publicKey, privateKey };
-      } catch (err) {
-        console.log("Keypair RPC error ", err);
-        console.log("Using firestore fallback");
-
-        try{
-        const keypairsRef = collection(db, "keypairs");
-        const keypairsQuery = query(keypairsRef);
-
-        // Get the first document in the keypairs collection
-        const keypairsSnapshot = await getDocs(keypairsQuery);
-        // If its empty try to request airdrop again
-        if (keypairsSnapshot.empty) {
-          console.log('The keypairs collection is empty.');
-          // Connect to Solana RPC endpoint
-          const customConnection = new Connection(CUSTOM_DEVNET_RPC);
-
-          // Generate a new key pair for the Solana network
-          const keypair = Keypair.generate();
-          const publicKey = keypair.publicKey;
-          const privateKey = keypair.secretKey;
-          console.log("Key pair created!")
-          const airdrop = await customConnection.requestAirdrop(
-            publicKey,
-            2 * LAMPORTS_PER_SOL
-          );
-          console.log(`Airdrop transaction for ${publicKey}`, airdrop);
-          // Save public & private key in user's record
-          const userRef = doc(db, "users", userId.toString());
-          await updateDoc(userRef, {
-            publicKey: publicKey.toString(),
-            privateKey: Array.from(privateKey),
-          }); 
-
-          return { publicKey, privateKey };
-        } else{
-          // Assign the keys to the user
-          const keypairRef = keypairsSnapshot.docs[0];
-          const keypair = keypairRef.data();
-
-          const publicKey = keypair.publicKey;
-          const privateKey = keypair.privateKey;
-
-          const userRef = doc(db, "users", userId.toString());
-          await updateDoc(userRef, {
-            publicKey: publicKey,
-            privateKey: privateKey,
-          }); 
-
-          // Delete the document once the keys are assigned
-          await deleteDoc(keypairRef.ref);
-          console.log("Wallet consumed")
-
-          return { publicKey, privateKey };
-        }
-      }catch(firebaseErr){
-        console.log("createUserWalletFirebase error ", firebaseErr);
-        }
-      }
+      // Save public & private key in user's record
+      const userRef = doc(db, "users", userId.toString());
+      await updateDoc(userRef, {
+        publicKey: publicKey.toString(),
+        privateKey: Array.from(privateKey),
+      });
+      return { publicKey, privateKey, newWallet: true };
     };
-
     try {
       const docRef = doc(db, "users", userId.toString());
       const docSnap = await getDoc(docRef);
       const userInfo = docSnap.data();
       if ("publicKey" in userInfo && "privateKey" in userInfo) {
-        console.log("Wallet already exists")
         const rawPrivateKey = userInfo.privateKey;
         const privateKeyArray = Uint8Array.from(
           Object.entries(rawPrivateKey).map(([key, value]) => value)
@@ -391,7 +323,7 @@ module.exports = {
         const publicKey = userKeyPair.publicKey;
         const privateKey = userKeyPair.secretKey;
         console.log(`Retrieving wallet for ${userId}`);
-        return { publicKey, privateKey };
+        return { publicKey, privateKey, newWallet: false };
       } else {
         const walletKeys = await createUserWalletFirebase(userId);
         return walletKeys;
@@ -401,24 +333,28 @@ module.exports = {
     }
   },
 
-  mintNft: async (userKeypair, creatorKey, title, symbol, uri) => {
+  getMasterWalletFirebase: async () => {
     try {
-      const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
-        "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
-      );
-      const TREEHOPPERS_PROGRAM_ID = new PublicKey(
-        "BgAh9RE8D5119VA1q28MxPMx77mdbYxWc7DPB5ULAB5x"
-      );
+      const docRef = doc(db, "keypair", "master");
+      const docSnap = await getDoc(docRef);
+      const keypairData = docSnap.data();
+      return keypairData;
+    } catch (err) {
+      console.log("getMasterKeypairFirebase error, ", err);
+    }
+  },
 
-      // Setup for contract interaction
-      const connection = new Connection(CUSTOM_DEVNET_RPC);
-      const provider = new AnchorProvider(
-        connection,
-        new NodeWallet(userKeypair),
-        AnchorProvider.defaultOptions()
-      );
-      const program = new Program(idl, TREEHOPPERS_PROGRAM_ID, provider);
-
+  mintNft: async (
+    userKeypair, 
+    creatorKey, 
+    title, 
+    symbol, 
+    uri,
+    TOKEN_METADATA_PROGRAM_ID,
+    provider,
+    program
+  ) => {
+    try {
       const mintAccount = Keypair.generate();
       let nftTokenAccount;
       let metadataAccount;
@@ -490,17 +426,7 @@ module.exports = {
           [mintAccount, userKeypair],
           { commitment: "processed" }
         );
-
-        console.log("Transaction Signature: ", response);
         console.log("Mint Account address: ", mintAccount.publicKey.toString());
-        console.log("User Account address: ", userKeypair.publicKey.toString());
-        console.log(
-          "[NFT] Token Account address: ",
-          nftTokenAccount.toString(),
-          {
-            skipPreflight: true,
-          }
-        );
       };
 
       const sendMintTransaction = async () => {
@@ -524,19 +450,95 @@ module.exports = {
           })
           .signers([userKeypair])
           .rpc({ skipPreflight: true, commitment: "processed" });
-        console.log("Transaction Signature: ", mintTransaction);
+        console.log(
+          "Successfully Minted NFT to wallet, txn: ",
+          mintTransaction
+        );
         return mintTransaction;
       };
 
       await createAndInitializeAccounts();
-      const response = await sendMintTransaction();
+      await sendMintTransaction();
       return {
-        mintAccount: mintAccount.publicKey.toString(),
-        transaction: response,
+        mintAccountAddress: mintAccount.publicKey.toString(),
       };
     } catch (err) {
       console.log("mintNft error ", err);
+      return { mintAccountAddress: "Minting failed" };
     }
   },
 
+  transferSol: async (masterKeypair, userPublickey, connection) => {
+    try {
+      const transferInstruction = SystemProgram.transfer({
+        fromPubkey: masterKeypair.publicKey,
+        lamports: 0.05 * LAMPORTS_PER_SOL,
+        toPubkey: userPublickey,
+      });
+      const transaction = new Transaction().add(transferInstruction);
+      const signature = await sendAndConfirmTransaction(
+        connection,
+        transaction,
+        [masterKeypair],
+        { skipPreflight: true, commitment: "processed" }
+      );
+      console.log("Successfully transferred SOL to User, txn: ", signature);
+    } catch (err) {
+      console.log("Error while transferring SOL", err);
+    }
+  },
+
+  transferNft: async (
+    masterKeypair,
+    userPublickey,
+    connection,
+    mintAccountAddress
+  ) => {
+    try {
+      const mintAccount = new PublicKey(mintAccountAddress);
+      const masterAssociatedTokenAccount = await getAssociatedTokenAddress(
+        mintAccount,
+        masterKeypair.publicKey
+      );
+      const userAssociatedTokenAccount = await getAssociatedTokenAddress(
+        mintAccount,
+        userPublickey
+      );
+
+      const createAtaInstruction = createAssociatedTokenAccountInstruction(
+        masterKeypair.publicKey,
+        userAssociatedTokenAccount,
+        userPublickey,
+        mintAccount
+      );
+      const transferInstruction = createTransferInstruction(
+        masterAssociatedTokenAccount,
+        userAssociatedTokenAccount,
+        masterKeypair.publicKey,
+        1,
+        []
+      );
+      const instructions = [createAtaInstruction, transferInstruction];
+
+      const blockhash = await connection
+        .getLatestBlockhash()
+        .then((res) => res.blockhash);
+
+      const messageV0 = new TransactionMessage({
+        payerKey: masterKeypair.publicKey,
+        recentBlockhash: blockhash,
+        instructions,
+      }).compileToV0Message();
+
+      const transaction = new VersionedTransaction(messageV0);
+      transaction.sign([masterKeypair]);
+
+      const txid = await connection.sendTransaction(transaction, { skipPreflight: true, commitment: "processed" });
+      console.log("Successfully Transferred NFT to user, txn:", txid);
+      return mintAccountAddress;
+    } catch (err) {
+      console.log("transferNft failed, ", err);
+      return "Minting failed";
+    }
+  },
 };

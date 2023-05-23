@@ -36,6 +36,12 @@ const RaffleForm = ({
   imageCID,
 }: EventFormProps) => {
   const [loading, setLoading] = useState(false);
+  const [showRaffleModal, setShowRaffleModal] = useState(false);
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+
+  const [winners, setWinners] = useState<any[]>([]);
+  const [losers, setLosers] = useState<any[]>([]);
 
   function dateFormat(dateString: string | number | Date) {
     let date = new Date(dateString);
@@ -56,41 +62,83 @@ const RaffleForm = ({
     return result;
   };
 
-  function raffleSelect(users: any, amount: number) {
-    const result = [];
-    const tempArr = [...users];
-    for (let i = 0; i < amount; i++) {
-      if (tempArr.length === 0) {
-        break;
-      }
-      const randomIndex = Math.floor(Math.random() * tempArr.length);
-      result.push(tempArr[randomIndex]);
-      tempArr.splice(randomIndex, 1);
+  const uploadData = async(
+    data:
+      | {
+          merchantKey: string;
+          symbol: string;
+          title: string;
+          uri: string;
+        }
+  ) => {
+    console.log("uploading event nft data")
+    if (data) {
+      const title = data.title + "-nft";
+      const dbInstance = doc(database, "/nfts", title + dateTime2);
+      await setDoc(dbInstance, data).then(() => {
+        console.log("finished uploading event nft data");
+      });
     }
-    return result;
+    
+  };
+
+  function handleRaffleClick() {
+    setShowRaffleModal(true);
   }
 
-  async function conductRaffle() {
+  function handleIssueClick() {
+    setShowIssueModal(true);
+  }
+
+  function handleNotifyClick() {
+    setShowNotifyModal(true);
+  }
+
+  async function handleRaffleConfirm() {
+    setShowRaffleModal(false);
+    setLoading(true);
+    
     console.log("conducting raffle")
-    const amount = parseInt(capacity2);
-    const winners = raffleSelect(users, amount);
-    const losers = users.filter((x) => !winners.includes(x));
+    try{
+      //set check to see if raffle has been conducted before
+      const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+      const registrations = response.data;
+      console.log(registrations)
+      // Check if any registration has a status other than PENDING
+      const nonPendingRegistrations = registrations.filter((registration: { status: string }) => registration.status !== "PENDING");
+      
+      if (nonPendingRegistrations.length > 0) {
+        // Exit the function if any registration is not pending
+        alert('Raffle has already been conducted!');
+        setLoading(false);
+        window.location.reload();
+        return;
+      }
 
-    console.log("winners", winners);
-    console.log("losers", losers);
+      // If raffle havent been conducted before, conduct raffle 
+      const amount = parseInt(capacity2);
+      const result = await raffleSelect(users, amount);
+      const winners = result.winners
+      const losers = result.losers
 
-    for (let i = 0; i < losers.length; i++) {
-      const data = {
-        user_id: (losers[i] as any).id,
-        event_title: eventName2,
-        status: "UNSUCCESSFUL",
-      };
-      console.log("updating losers")
-      const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
-      const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(losers[i] as any).chat_id}&text=${message}`;
-      fetch(telegramPush).then((res) => {
-        console.log(res);
-      }).then(() => {
+      console.log("winners", winners);
+      console.log("losers", losers);
+
+      if (winners.length == 0) {
+        alert('Error when selecting winners');
+        setLoading(false);
+        window.location.reload();
+        return;
+      }
+
+      // Update registration status of winners and losers
+      for (let i = 0; i < losers.length; i++) {
+        const data = {
+          user_id: (losers[i] as any).id,
+          event_title: eventName2,
+          status: "UNSUCCESSFUL",
+        };
+        
         axios
         .post(BASE + "/updateRegistration", data)
         .then((response: { data: any }) => {
@@ -99,92 +147,123 @@ const RaffleForm = ({
         .catch((error: any) => {
           console.log(error);
         });
-      })
-      
+        
+        const timestamp = new Date().toLocaleString("en-US", { timeZone: "UTC" });
 
-      const timestamp = new Date().toLocaleString("en-US", { timeZone: "UTC" });
+        const transaction = {
+          user_id: (losers[i] as any).id,
+          amount: price2,
+          transaction_type: "REFUND",
+          timestamp: timestamp,
+          event_title: eventName2,
+        };
 
-      const transaction = {
-        user_id: (losers[i] as any).id,
-        amount: price2,
-        transaction_type: "REFUND",
-        timestamp: timestamp,
-        event_title: eventName2,
-      };
-
-      axios
-        .post(BASE + "/raffleRefund", transaction)
-        .then((response: { data: any }) => {
-          console.log(response.data);
-        })
-        .catch((error: any) => {
-          console.log(error);
-        });
-    }
-
-    let counter = 0;
-
-    for (let i = 0; i < winners.length; i++) {
-      const data = {
-        user_id: winners[i].id,
-        event_title: eventName2,
-        status: "SUCCESSFUL",
-      };
-
-      console.log("updating winners")
-
-      axios.post(BASE + "/mintNFT", data).then((response: { data: any }) => {
-        console.log(response.data.mintAccount);
-        const ticketLink = `https://solana.fm/address/${response.data.mintAccount}/metadata?cluster=devnet-qn1`;
-        const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
-        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${winners[i].chat_id}&text=${message}`;
-        fetch(telegramPush).then((res) => {
-          console.log(res);
-        }).then(() => {
-          const registrationData = {
-            user_id: winners[i].id,
-            event_title: eventName2,
-            status: "SUCCESSFUL",
-            mint_account: response.data.mintAccount,
-          };
-          axios.post(BASE + "/updateRegistration", registrationData).then((response: { data: any }) => {
+        axios
+          .post(BASE + "/raffleRefund", transaction)
+          .then((response: { data: any }) => {
             console.log(response.data);
-            counter += 1;
-          }).then(() => {
-            if (counter === winners.length) {
-              console.log("raffle conducted")
-              setLoading(false);
-              
-              window.location.reload();
-              
-            }
           })
-        })
-      })
+          .catch((error: any) => {
+            console.log(error);
+          });
+      }
+
+      let counter = 0;
+
+      for (let i = 0; i < winners.length; i++) {
+        const registrationData = {
+          user_id: winners[i].id,
+          event_title: eventName2,
+          status: "SUCCESSFUL",
+        };
+        axios.post(BASE + "/updateRegistration", registrationData).then((response: { data: any }) => {
+          console.log(response.data);
+          counter += 1;
+        }).then(() => {
+          if (counter === winners.length) {
+            console.log("raffle conducted")
+            setLoading(false);
+            
+            window.location.reload();
+            
+          }
+        }) 
+      }
+    } catch (error: any) {
+      console.log("Error when issuing tickets: "+ error);
     }
 
-
-    
-    
   }
 
-  const [showModal, setShowModal] = useState(false);
-
-  function handleClick() {
-    setShowModal(true);
-  }
-
-
-  function handleCancel() {
-    setShowModal(false);
-  }
-
-  function handleConfirm() {
-    setShowModal(false);
-
+  async function handleIssueConfirm() {
+    setShowIssueModal(false);
     console.log(eventName2, dateTime2, venue2, capacity2);
-    // Upload image to /uploadFile endpoint using Pinata
     setLoading(true);
+    
+    const result = await getRaffleResult();
+    if (result) {
+      const winners = result.winners;
+      const losers = result.losers;
+      // once the winners and losers arrays are derived, issue the NFTs to them
+      issueNfts(winners, losers);
+    } else {
+      // Handle the case when result is undefined
+      console.error("Failed to get raffle result");
+    } 
+  }
+
+  async function handleNotifyConfirm() {
+    setShowIssueModal(false);
+    setLoading(true);
+    notifyUsers();
+  }
+
+  // This method conducts the raffle, and returns an array of winners and losers
+  async function raffleSelect(users: any, amount: number) {
+    const winners: any[] = [];
+    const tempArr = [...users];
+    for (let i = 0; i < amount; i++) {
+      if (tempArr.length === 0) {
+        break;
+      }
+      const randomIndex = Math.floor(Math.random() * tempArr.length);
+      winners.push(tempArr[randomIndex]);
+      tempArr.splice(randomIndex, 1);
+    }
+    const losers = users.filter((x: any) => !winners.includes(x));
+    
+    return {winners, losers};
+  }
+
+  // This method should be able to derive the winners and losers from the registration status, assuming that the raffle has been conducted already
+  async function getRaffleResult() {
+    // Get all registrations for this event
+    const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+    const registrations = response.data;
+    // Get resgistrations which are successful
+    const successfulRegistrations = registrations.filter((registration: { status: any }) => registration.status == "SUCCESSFUL");
+    const successfulUserIds = successfulRegistrations.map((registration: { userId: any }) => registration.userId);
+
+    // Get user objects from successful registraions and construcwt winner array
+    const winners = users.filter((user: any) => successfulUserIds.includes(user.id));
+    // Then use the not include clause to get loser array
+    const losers = users.filter((x: any) => !winners.includes(x));
+    // Check to see if raffle has been conducted before
+    if (winners.length == 0) {
+      alert('Please conduct the raffle first!');
+      setLoading(false);
+      window.location.reload();
+      return;
+    } else{
+      setWinners(winners);
+      setLosers(losers);
+    }
+    
+    return {winners, losers};
+  }
+
+  async function issueNfts(winners: any[], losers: any[]) {
+    console.log("uploading metadata")
     const metadata = {
       title: eventName2,
       symbol: symbol,
@@ -208,8 +287,8 @@ const RaffleForm = ({
     console.log("This is the metadata: "+metadata);
     
       
-    pinataMetadataUpload(metadata).then((res) => {
-      uploadData(
+    await pinataMetadataUpload(metadata).then(async (res) => {
+      await uploadData(
         {
           // merchantKey: address[0],
           merchantKey: "GjjWyt7avbnhkcJzWJYboA33ULNqFUH5ZQk58Wcd2n2z",
@@ -218,30 +297,52 @@ const RaffleForm = ({
           uri: `https://ipfs.io/ipfs/${res}`,
         }
       );
-      
     });
+    console.log("Issuing NFTs to winners")
+    const userIds = winners.map((user) => user.id);
+
+    const data = {
+      user_ids: userIds,
+      event_title: eventName2,
+      status: "SUCCESSFUL",
+    };
+
+    axios.post(BASE + "/mintNFT", data).then((response) => {
+      console.log(response.data);
+    })
+    setLoading(false);
+    window.location.reload();
   }
 
-  const uploadData = (
-    data:
-      | {
-          merchantKey: string;
-          symbol: string;
-          title: string;
-          uri: string;
-        }
-  ) => {
-    console.log("uploading event nft data")
-    if (data) {
-      const title = data.title + "-nft";
-      const dbInstance = doc(database, "/nfts", title + dateTime2);
-      setDoc(dbInstance, data).then(() => {
-        console.log("finished uploading event nft data");
-        conductRaffle()
-      });
+  async function notifyUsers() {
+    const result = await getRaffleResult();
+    if (result){
+      const winners = result.winners;
+
+      for (let i = 0; i < winners.length; i++) {
+        console.log("updating winners")
+        const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
+          const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${winners[i].chat_id}&text=${message}`;
+          fetch(telegramPush).then((res) => {
+            console.log(res);
+          })
+      }
+
+      for (let i = 0; i < losers.length; i++) {
+        console.log("updating losers")
+        const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
+        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(losers[i] as any).chat_id}&text=${message}`;
+        fetch(telegramPush).then((res) => {
+          console.log(res);
+        })
+      }
+      setLoading(false);
+      window.location.reload();
+    }else{
+      console.error("Failed to get raffle result");
     }
     
-  };
+  }
 
   return (
     <>
@@ -262,18 +363,46 @@ const RaffleForm = ({
           
           <button
             type="button"
-            className="w-full text-white bg-black hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-            onClick={handleClick}
+            className="w-full text-white bg-black hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mt-4"
+            onClick={handleRaffleClick}
           >
             Conduct Raffle
           </button>
+          <button
+            type="button"
+            className="w-full text-white bg-black hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mt-4"
+            onClick={handleIssueClick}
+          >
+            Issue Tickets
+          </button>
+          <button
+            type="button"
+            className="w-full text-white bg-black hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mt-4"
+            onClick={handleNotifyClick}
+          >
+            Notify Users
+          </button>
           <ConfirmationModal
-          show={showModal}
-          title="Confirmation"
+          show={showRaffleModal}
+          title="Raffle Confirmation"
           message="This will use a raffle system to determine which user will win the tickets. Are you sure you want to continue?"
-          onConfirm={handleConfirm}
-          onCancel={handleCancel}
-        />
+          onConfirm={handleRaffleConfirm}
+          onCancel={() => setShowRaffleModal(false)}
+          />
+          <ConfirmationModal
+            show={showIssueModal}
+            title="Issue Confirmation"
+            message="This will issue the tickets on the blockchain. Are you sure you want to continue?"
+            onConfirm={handleIssueConfirm}
+            onCancel={() => setShowIssueModal(false)}
+          />
+          <ConfirmationModal
+            show={showNotifyModal}
+            title="Notify Confirmation"
+            message="This will notify users of their registration status on telegram. Are you sure you want to continue?"
+            onConfirm={handleNotifyConfirm}
+            onCancel={() => setShowNotifyModal(false)}
+          />
         </form>
       )}
     </>
