@@ -40,9 +40,6 @@ const RaffleForm = ({
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [showNotifyModal, setShowNotifyModal] = useState(false);
 
-  const [winners, setWinners] = useState<any[]>([]);
-  const [losers, setLosers] = useState<any[]>([]);
-
   function dateFormat(dateString: string | number | Date) {
     let date = new Date(dateString);
     return date.toLocaleString();
@@ -255,11 +252,9 @@ const RaffleForm = ({
       window.location.reload();
       return;
     } else{
-      setWinners(winners);
-      setLosers(losers);
+      return {winners, losers};
     }
     
-    return {winners, losers};
   }
 
   async function issueNfts(winners: any[], losers: any[]) {
@@ -341,11 +336,12 @@ const RaffleForm = ({
     const result = await getRaffleResult();
     if (result){
       const winners = result.winners;
+      const losers = result.losers;
 
       for (let i = 0; i < winners.length; i++) {
         console.log("updating winners")
         const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
-          const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${winners[i].chat_id}&text=${message}`;
+          const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(winners[i] as any).chat_id}&text=${message}`;
           fetch(telegramPush).then((res) => {
             console.log(res);
           })
