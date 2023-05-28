@@ -293,7 +293,7 @@ const RaffleForm = ({
         }
       );
     });
-    console.log("Issuing NFTs to winners")
+    console.log("Issuing NFTs to winners");
     const userIds = winners.map((user) => user.id);
 
     const data = {
@@ -302,15 +302,50 @@ const RaffleForm = ({
       status: "SUCCESSFUL",
     };
 
-    axios.post(BASE + "/mintNFT", data).then((response) => {
-      console.log(response.data);
-    })
-    setLoading(false);
-    window.location.reload();
+    axios.post(BASE + "/mintNFT", data)
+      .then((response) => {
+        console.log(response.data);
+        console.log("Updating Registrations with Mint Accounts")
+        const mintPromises = userIds.map((userId) => {
+          const mintAccount = response.data[0][userId];
+          const updateData = {  
+            user_id: userId,
+            event_title: eventName2,
+            status: "SUCCESSFUL",
+            mint_account: mintAccount,
+          };
+
+          return axios.post(BASE + "/updateRegistration", updateData);
+        });
+
+        return Promise.all(mintPromises);
+      })
+      .then((updateResponses) => {
+        console.log(updateResponses);
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+      .finally(() => {
+        setLoading(false);
+        window.location.reload();
+      });
   }
 
   async function notifyUsers() {
+    const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+    const registrations = response.data;
+    const missingMintAccount = registrations.some((registration: { mint_account: any; }) => !registration.mint_account);
+
+    if (missingMintAccount) {
+      alert('Please issue the NFTs before notifying users');
+      setLoading(false);
+      window.location.reload();
+      return;
+    }
+
     const result = await getRaffleResult();
+    
     if (result){
       const winners = result.winners;
       const losers = result.losers;
