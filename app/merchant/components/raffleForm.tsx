@@ -333,7 +333,19 @@ const RaffleForm = ({
   }
 
   async function notifyUsers() {
+    const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+    const registrations = response.data;
+    const missingMintAccount = registrations.some((registration: { mint_account: any; }) => !registration.mint_account);
+
+    if (missingMintAccount) {
+      alert('Please issue the NFTs before notifying users');
+      setLoading(false);
+      window.location.reload();
+      return;
+    }
+
     const result = await getRaffleResult();
+    
     if (result){
       const winners = result.winners;
       const losers = result.losers;
