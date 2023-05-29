@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { database, storage } from "../firebaseConfig";
+import { database } from "../firebaseConfig";
 import { setDoc, doc } from "firebase/firestore";
-import { ref, uploadBytes } from "firebase/storage";
 import axios from "axios";
 import ConfirmationModal from "./confirmationModal"
-import { Box, Skeleton, SkeletonText, Spinner, Center } from "@chakra-ui/react";
+import { Box, Skeleton, Spinner, Center } from "@chakra-ui/react";
 
 const JWT = process.env.NEXT_PUBLIC_PINATA_JWT;
 const TELEGRAM_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT;
@@ -112,7 +111,6 @@ const RaffleForm = ({
         return;
       }
 
-      // If raffle havent been conducted before, conduct raffle 
       const amount = parseInt(capacity2);
       const result = await raffleSelect(users, amount);
       const winners = result.winners
@@ -232,20 +230,16 @@ const RaffleForm = ({
     return {winners, losers};
   }
 
-  // This method should be able to derive the winners and losers from the registration status, assuming that the raffle has been conducted already
   async function getRaffleResult() {
-    // Get all registrations for this event
     const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
     const registrations = response.data;
-    // Get resgistrations which are successful
+
     const successfulRegistrations = registrations.filter((registration: { status: any }) => registration.status == "SUCCESSFUL");
     const successfulUserIds = successfulRegistrations.map((registration: { userId: any }) => registration.userId);
 
-    // Get user objects from successful registraions and construcwt winner array
     const winners = users.filter((user: any) => successfulUserIds.includes(user.id));
-    // Then use the not include clause to get loser array
     const losers = users.filter((x: any) => !winners.includes(x));
-    // Check to see if raffle has been conducted before
+
     if (winners.length == 0) {
       alert('Please conduct the raffle first!');
       setLoading(false);
@@ -285,7 +279,6 @@ const RaffleForm = ({
     await pinataMetadataUpload(metadata).then(async (res) => {
       await uploadData(
         {
-          // merchantKey: address[0],
           merchantKey: "GjjWyt7avbnhkcJzWJYboA33ULNqFUH5ZQk58Wcd2n2z",
           symbol: symbol,
           title: eventName2,
