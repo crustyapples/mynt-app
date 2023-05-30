@@ -245,6 +245,17 @@ const SelectForm = ({
   }
 
   async function issueNfts(winners: any[], losers: any[]) {
+    const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+    const registrations = response.data;
+    const existingMintAccount = registrations.some((registration: { mint_account?: any }) => registration.mint_account);
+
+    if (existingMintAccount) {
+      alert('NFTs has already been minted before!');
+      setLoading(false);
+      window.location.reload();
+      return
+    }
+
     console.log("uploading metadata")
     const metadata = {
       title: eventName2,
