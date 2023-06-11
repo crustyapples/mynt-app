@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { database, storage } from "../firebaseConfig";
+import { database } from "../firebaseConfig";
 import { setDoc, doc } from "firebase/firestore";
-import { ref, uploadBytes } from "firebase/storage";
 import axios from "axios";
 import ConfirmationModal from "./confirmationModal"
-import { Box, Skeleton, SkeletonText, Spinner, Center } from "@chakra-ui/react";
+import { Box, Skeleton, Spinner, Center } from "@chakra-ui/react";
 
 const JWT = process.env.NEXT_PUBLIC_PINATA_JWT;
 const TELEGRAM_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT;
@@ -39,9 +38,6 @@ const RaffleForm = ({
   const [showRaffleModal, setShowRaffleModal] = useState(false);
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [showNotifyModal, setShowNotifyModal] = useState(false);
-
-  const [winners, setWinners] = useState<any[]>([]);
-  const [losers, setLosers] = useState<any[]>([]);
 
   function dateFormat(dateString: string | number | Date) {
     let date = new Date(dateString);
@@ -115,7 +111,6 @@ const RaffleForm = ({
         return;
       }
 
-      // If raffle havent been conducted before, conduct raffle 
       const amount = parseInt(capacity2);
       const result = await raffleSelect(users, amount);
       const winners = result.winners
@@ -235,34 +230,39 @@ const RaffleForm = ({
     return {winners, losers};
   }
 
-  // This method should be able to derive the winners and losers from the registration status, assuming that the raffle has been conducted already
   async function getRaffleResult() {
-    // Get all registrations for this event
     const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
     const registrations = response.data;
-    // Get resgistrations which are successful
+
     const successfulRegistrations = registrations.filter((registration: { status: any }) => registration.status == "SUCCESSFUL");
     const successfulUserIds = successfulRegistrations.map((registration: { userId: any }) => registration.userId);
 
-    // Get user objects from successful registraions and construcwt winner array
     const winners = users.filter((user: any) => successfulUserIds.includes(user.id));
-    // Then use the not include clause to get loser array
     const losers = users.filter((x: any) => !winners.includes(x));
-    // Check to see if raffle has been conducted before
+
     if (winners.length == 0) {
       alert('Please conduct the raffle first!');
       setLoading(false);
       window.location.reload();
       return;
     } else{
-      setWinners(winners);
-      setLosers(losers);
+      return {winners, losers};
     }
     
-    return {winners, losers};
   }
 
   async function issueNfts(winners: any[], losers: any[]) {
+    const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+    const registrations = response.data;
+    const existingMintAccount = registrations.some((registration: { mint_account?: any }) => registration.mint_account);
+
+    if (existingMintAccount) {
+      alert('NFTs has already been minted before!');
+      setLoading(false);
+      window.location.reload();
+      return
+    }
+
     console.log("uploading metadata")
     const metadata = {
       title: eventName2,
@@ -290,7 +290,6 @@ const RaffleForm = ({
     await pinataMetadataUpload(metadata).then(async (res) => {
       await uploadData(
         {
-          // merchantKey: address[0],
           merchantKey: "GjjWyt7avbnhkcJzWJYboA33ULNqFUH5ZQk58Wcd2n2z",
           symbol: symbol,
           title: eventName2,
@@ -298,7 +297,7 @@ const RaffleForm = ({
         }
       );
     });
-    console.log("Issuing NFTs to winners")
+    console.log("Issuing NFTs to winners");
     const userIds = winners.map((user) => user.id);
 
     const data = {
@@ -307,22 +306,58 @@ const RaffleForm = ({
       status: "SUCCESSFUL",
     };
 
-    axios.post(BASE + "/mintNFT", data).then((response) => {
-      console.log(response.data);
-    })
-    setLoading(false);
-    window.location.reload();
+    axios.post(BASE + "/mintNFT", data)
+      .then((response) => {
+        console.log(response.data);
+        console.log("Updating Registrations with Mint Accounts")
+        const mintPromises = userIds.map((userId) => {
+          const mintAccount = response.data[0][userId];
+          const updateData = {  
+            user_id: userId,
+            event_title: eventName2,
+            status: "SUCCESSFUL",
+            mint_account: mintAccount,
+          };
+
+          return axios.post(BASE + "/updateRegistration", updateData);
+        });
+
+        return Promise.all(mintPromises);
+      })
+      .then((updateResponses) => {
+        console.log(updateResponses);
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+      .finally(() => {
+        setLoading(false);
+        window.location.reload();
+      });
   }
 
   async function notifyUsers() {
+    const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+    const registrations = response.data;
+    const missingMintAccount = registrations.some((registration: { mint_account: any; }) => !registration.mint_account);
+
+    if (missingMintAccount) {
+      alert('Please issue the NFTs before notifying users');
+      setLoading(false);
+      window.location.reload();
+      return;
+    }
+
     const result = await getRaffleResult();
+    
     if (result){
       const winners = result.winners;
+      const losers = result.losers;
 
       for (let i = 0; i < winners.length; i++) {
         console.log("updating winners")
         const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
-          const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${winners[i].chat_id}&text=${message}`;
+          const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(winners[i] as any).chat_id}&text=${message}`;
           fetch(telegramPush).then((res) => {
             console.log(res);
           })
