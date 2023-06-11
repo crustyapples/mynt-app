@@ -693,6 +693,7 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
     events_dict = context.user_data["events_dict"]
     event_price = events_dict[event_title]
     context.user_data["event_price"] = event_price
+    user_id = await get_user_id_from_query(update)
     context.user_data["new_user"] = await is_new_user(user_id)
     
     user_id = query.from_user.id
