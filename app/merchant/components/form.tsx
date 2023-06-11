@@ -23,8 +23,8 @@ const EventForm = () => {
       alert('Please fill out all required fields.');
       return;
     }
-    if (Number(price) <= 0) {
-      alert('Price must be a positive number.');
+    if (Number(price) < 0) {
+      alert('Price cannot be negative.');
       return;
     }
     if (Number(capacity) <= 0) {

@@ -89,6 +89,7 @@ app.post("/uploadUserInfo", (req, res) => {
     user_name,
     user_contact,
     chat_id,
+    balance : 0,
   };
   try {
     insertUserFirebase(userInfo).then(() =>
