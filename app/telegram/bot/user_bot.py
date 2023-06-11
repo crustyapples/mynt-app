@@ -693,7 +693,7 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
     events_dict = context.user_data["events_dict"]
     event_price = events_dict[event_title]
     context.user_data["event_price"] = event_price
-
+    context.user_data["new_user"] = await is_new_user(user_id)
     
     user_id = query.from_user.id
     double_registration = get_previous_registrations(user_id, event_title)
@@ -706,6 +706,11 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
 
     elif invalid_balance:
         text=("You have insufficient funds. \n"
+            "Please top up ur wallet in the Wallet menu.")
+        await send_default_event_message(update, context, text)
+        
+    elif context.user_data["new_user"] == True:
+        text=("You have to top up your wallet before making your first registration. \n"
             "Please top up ur wallet in the Wallet menu.")
         await send_default_event_message(update, context, text)
     
