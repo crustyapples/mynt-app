@@ -747,12 +747,12 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
 
     elif invalid_balance:
         text=("You have insufficient funds. \n"
-            "Please top up ur wallet in the Wallet menu.")
+            "Please top up your wallet in the Wallet menu.")
         await send_default_event_message(update, context, text)
         
     elif context.user_data["new_user"] == True:
-        text=("You have to top up your wallet before making your first registration. \n"
-            "Please top up ur wallet in the Wallet menu.")
+        text=("You have to create your wallet before making your first registration. \n"
+            "Please create your wallet in the Wallet menu.")
         await send_default_event_message(update, context, text)
     
     else:
