@@ -8,6 +8,14 @@ from telegram.ext import (
 )
 import re
 import os
+from dotenv import load_dotenv
+
+from bot_utils import send_default_message, update_default_start_message
+
+ROUTE, NEW_USER, NEW_USER_NAME, SHOW_QR = range(4)
+
+load_dotenv()
+endpoint_url = os.getenv("BACKEND_ENDPOINT", "http://localhost:3000")
 
 # Logging
 logging.basicConfig(
@@ -15,11 +23,6 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
-from bot_utils import send_default_message, update_default_start_message
-
-ROUTE, NEW_USER, NEW_USER_NAME, SHOW_QR = range(4)
-endpoint_url = os.getenv("BACKEND_ENDPOINT", "http://localhost:3000")
 
 
 async def new_user_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
