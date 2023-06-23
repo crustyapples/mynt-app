@@ -19,6 +19,13 @@ from dotenv import load_dotenv
 from sys import platform
 from PIL import Image
 
+from bot_onboarding import new_user_menu, existing_user_menu
+from bot_onboarding import create_profile, get_new_user_name, register_new_user
+
+from bot_utils import (wallet_options, event_options, 
+                       send_default_message, send_default_event_message, send_default_wallet_message,
+                       update_default_event_message, update_default_start_message, update_default_wallet_message)
+
 load_dotenv()
 
 
@@ -41,6 +48,7 @@ ROUTE, NEW_USER, NEW_USER_NAME, SHOW_QR = range(4)
 
 """
 =============================================================================================
+is_new_user: check whether a user is a new user
 start: Send bot description and provide user with wallet & event options, 
 cancel: Exit current action
 unknown: User sends an unknown commad/message/invalid response
@@ -48,34 +56,22 @@ error_handler: Error occured during execution and user is informed
 =============================================================================================
 """
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("Wallet", callback_data="wallet_options"),],
-        [InlineKeyboardButton("Event", callback_data="event_options"),]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    message = ("*Welcome to Mynt ticketing bot!*\n\n"
-               "This bot allows you to create a Mynt wallet so that you can easily purchase tickets for upcoming events.\n\n"
-               "To get started, please create a Mynt wallet by selecting Create Wallet.\n\n"
-               "Once you have sufficient balance in your Mynt wallet, you can purchase a ticket for an event by selecting Register for an Event.\n\n"
-               "You can access other *wallet* & *event* functionalities by clicking on the respective buttons below.")
-
-    if update.callback_query:
-        query = update.callback_query
-        await query.answer()
-        await query.edit_message_text(
-            text=message, 
-            parse_mode="markdown", 
-            reply_markup=reply_markup
-        )
+async def is_new_user(user_id):
+    response = requests.get(endpoint_url + f"/getUserInfo/{user_id}")
+    response_data = response.json()
+    if response_data['name'] == "No Such User Exists":
+        return True
     else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id, 
-            text=message, 
-            parse_mode="markdown", 
-            reply_markup=reply_markup
-        )
+        return False
 
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    context.user_data["new_user"] = await is_new_user(user_id)
+    if context.user_data["new_user"] == True:
+        await new_user_menu(update, context)
+    else:
+        await existing_user_menu(update, context)
     return ROUTE
 
 
@@ -105,94 +101,6 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     #     "Please try again later")
     return ConversationHandler.END
 
-""""
-=============================================================================================
-wallet_options: Modify the current text (start msg) and display wallet options
-event_options: Modify the current text (start msg) and display event options
-send_default_message: Send message displaying the text(variable) passed, as well as Menu option. There are also wallet and event variations of the same function which routes different "< Back" buttons
-update_default_message: Update the previous message with the text(variable) passed, as well as Menu Option. There are also wallet and event variations of the same function which routes different "< Back" buttons
-=============================================================================================
-"""
-
-async def wallet_options(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    keyboard = [
-        [InlineKeyboardButton("View Wallet Balance",callback_data="view_wallet_balance"),],
-        [InlineKeyboardButton("View Transaction History",callback_data="view_transaction_history_1"),],
-        [InlineKeyboardButton("Top Up Wallet", callback_data="top_up_wallet"),],
-        [InlineKeyboardButton("Create Wallet", callback_data="create_wallet"),],
-        [InlineKeyboardButton("< Back", callback_data="start"),],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(
-        text="Please select one of the following options below", reply_markup=reply_markup
-    )
-    return ROUTE
-
-
-async def event_options(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    keyboard = [
-        [InlineKeyboardButton("View Ongoing Events", callback_data="view_events"),],
-        [InlineKeyboardButton("View Registration Status", callback_data="check_registration"),],
-        [InlineKeyboardButton("Redeem Event Ticket", callback_data="redeem"),],
-        [InlineKeyboardButton("< Back", callback_data="start"),],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(
-        text="Please select one of the following options below", reply_markup=reply_markup
-    )
-    return ROUTE
-
-async def send_default_message(update, context: ContextTypes.DEFAULT_TYPE, text):
-    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="start"),],]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=text,
-        reply_markup=reply_markup, 
-    )
-
-async def send_default_event_message(update, context: ContextTypes.DEFAULT_TYPE, text):
-    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="event_options"),],]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=text,
-        reply_markup=reply_markup, 
-    )
-
-async def send_default_wallet_message(update, context: ContextTypes.DEFAULT_TYPE, text):
-    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="wallet_options"),],]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=text,
-        reply_markup=reply_markup, 
-    )
-    
-    
-async def update_default_event_message(update, context: ContextTypes.DEFAULT_TYPE, text):
-    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="event_options"),],]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query = update.callback_query
-    await query.edit_message_text(
-        text=text,
-        reply_markup=reply_markup,
-        parse_mode='Markdown',
-    )
-
-async def update_default_wallet_message(update, context: ContextTypes.DEFAULT_TYPE, text):
-    keyboard = [[InlineKeyboardButton("< Back to Menu", callback_data="wallet_options"),],]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query = update.callback_query
-    await query.edit_message_text(
-        text=text,
-        reply_markup=reply_markup,
-        parse_mode='Markdown',
-    )
 
 """"
 =============================================================================================
@@ -346,7 +254,6 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=reply_markup
             )
             return ROUTE
-        
 
 
 async def show_QR(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -389,11 +296,7 @@ async def show_QR(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 """"
 =============================================================================================
-create_wallet: Prompt new user for their details
 top_up_wallet: Prompt new user for their details if required or direct them to get_topup_amount
-is_new_user: check whether a user is a new user
-register_new_user: send API request to save user records
-send_message_new_wallet: if the user creates wallet returns this message
 get_topup_amount: prompt user for top up amount
 proceed_payment: send payment invoice based on top up amount
 precheckout: Answer the PreQecheckoutQuery
@@ -401,96 +304,9 @@ successful_payment: Confirms successful payment and sends API request to update 
 =============================================================================================
 """
 
-
-async def create_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = await get_user_id_from_query(update)
-    context.user_data["new_user"] = await is_new_user(user_id)
-    context.user_data["create_wallet"] = True # doing this so that the user does not get asked to top up their wallet at the end
-    if context.user_data["new_user"] == True:
-        text=("To help us process your top-up, please provide your name in the following format: 'John'. \n"
-              "This information is only required for your first top-up.")
-        await update_default_wallet_message(update, context, text)
-        return NEW_USER_NAME
-    else:
-        text=("You already have a wallet created!")
-        await update_default_wallet_message(update, context, text)
-        return ROUTE
-
 async def top_up_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = await get_user_id_from_query(update)
-    context.user_data["new_user"] = await is_new_user(user_id)
-    context.user_data["create_wallet"] = False
-    if context.user_data["new_user"] == True:
-        text=("To help us process your top-up, please provide your name in the following format: 'John'. \n"
-              "This information is only required for your first top-up.")
-        await update_default_wallet_message(update, context, text)
-        return NEW_USER_NAME
-
-    else:
-        await get_topup_amount(update, context)
-        return ROUTE
-
-async def get_new_user_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_name = update.message.text
-    context.user_data['new_user_name'] = user_name
-    await update.message.reply_text("Nice! Please provide your contact number in the following format: '81818181'.")
-    return NEW_USER
-
-async def is_new_user(user_id):
-    response = requests.get(endpoint_url + f"/getUserInfo/{user_id}")
-    response_data = response.json()
-    if response_data['name'] == "No Such User Exists":
-        return True
-    else:
-        return False
-
-
-async def register_new_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    contact_number = update.message.text
-    context.user_data['new_contact_number'] = contact_number
-    user_id = update.message.from_user.id
-    user_handle = update.message.from_user.username
-    user_name = context.user_data["new_user_name"]
-    user_contact = context.user_data["new_contact_number"]
-    is_create_wallet = context.user_data["create_wallet"]
-    data = {
-        'user_id': user_id,
-        'user_handle': user_handle,
-        'user_name': user_name,
-        'user_contact': user_contact,
-        'chat_id' : update.effective_chat.id
-    }
-    logger.info(f'Saving records of new user {user_id}')
-
-    response = requests.post(endpoint_url + "/uploadUserInfo", json=data)
-    if response.status_code == 200:
-        if is_create_wallet: # if its the create_wallet function send a message without the payment options
-          await send_message_new_wallet(update, context)
-          return ROUTE
-        else:
-          await update.message.reply_text('Successfully saved your contact info')
-          await get_topup_amount(update, context)
-          return ROUTE
-    else:
-        await update.message.reply_text('An unexpected error occurred')
-        return ConversationHandler.END
-    
-async def send_message_new_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("< Back to Menu", callback_data="wallet_options"),],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query = update.callback_query
-    try:
-        await query.edit_message_text(
-            text="Successfully saved your contact info",
-            reply_markup=reply_markup
-        )
-    except AttributeError:
-        await update.message.reply_text(
-            text="Successfully saved your contact info",
-            reply_markup=reply_markup
-        )
+    await get_topup_amount(update, context)
+    return ROUTE
     
 
 async def get_topup_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -516,7 +332,6 @@ async def get_topup_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=reply_markup
         )
     
-
 
 async def proceed_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -734,7 +549,6 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
     event_price = events_dict[event_title]
     context.user_data["event_price"] = event_price
     user_id = await get_user_id_from_query(update)
-    context.user_data["new_user"] = await is_new_user(user_id)
     
     user_id = query.from_user.id
     double_registration = get_previous_registrations(user_id, event_title)
@@ -748,11 +562,6 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
     elif invalid_balance:
         text=("You have insufficient funds. \n"
             "Please top up your wallet in the Wallet menu.")
-        await send_default_event_message(update, context, text)
-        
-    elif context.user_data["new_user"] == True:
-        text=("You have to create your wallet before making your first registration. \n"
-            "Please create your wallet in the Wallet menu.")
         await send_default_event_message(update, context, text)
     
     else:
@@ -863,7 +672,7 @@ if __name__ == '__main__':
                 CallbackQueryHandler(view_wallet_balance,pattern="^view_wallet_balance$"),
                 CallbackQueryHandler(view_transaction_history, pattern="^view_transaction_history_(.*)$"),
                 CallbackQueryHandler(top_up_wallet, pattern="^top_up_wallet$"),
-                CallbackQueryHandler(create_wallet, pattern="^create_wallet$"),
+                CallbackQueryHandler(create_profile, pattern="^create_profile$"),
                 CallbackQueryHandler(proceed_payment, pattern="^top_up_10$"),
                 CallbackQueryHandler(proceed_payment, pattern="^top_up_50$"),
                 CallbackQueryHandler(proceed_payment, pattern="^top_up_100$"),
@@ -877,8 +686,12 @@ if __name__ == '__main__':
                 CommandHandler('start', start),
                 CommandHandler('cancel', cancel),
             },
-            NEW_USER: [MessageHandler(filters.Regex("^[0-9]{8}$"), register_new_user)],
-            NEW_USER_NAME: [MessageHandler(filters.Regex("^[a-zA-Z]+$"), get_new_user_name)],
+            NEW_USER: [MessageHandler(filters.TEXT, register_new_user),
+                       CallbackQueryHandler(start, pattern="^start$")],
+            NEW_USER_NAME: [
+                MessageHandler(filters.TEXT, get_new_user_name),
+                CallbackQueryHandler(start, pattern="^start$")
+                ],
             SHOW_QR: [MessageHandler(filters.TEXT, show_QR)],
         },
         fallbacks=[MessageHandler(filters.TEXT, unknown)]
