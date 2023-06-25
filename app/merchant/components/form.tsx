@@ -102,6 +102,8 @@ const EventForm = () => {
         console.log('Uploaded a blob or file!');
       });
       alert('Event created successfully!');
+      // send back to home page
+      window.location.href = "/";
     }
 
   };
