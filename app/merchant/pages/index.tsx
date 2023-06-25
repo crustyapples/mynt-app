@@ -19,74 +19,6 @@ export default function Home() {
   const [events, setEvents] = useState<any>({});
   const [users, setUsers] = useState<User[]>([]);
 
-
-  let cards: JSX.Element[] = [];
-
-  function generateCards(events: string | any[]) {
-    for (let i = 0; i < events.length; i++) {
-      cards.push(
-        <div key={i} className="m-2">
-          <Card
-            key={i}
-            title={events[i].title}
-            description={events[i].description}
-            price={events[i].price}
-            time={events[i].time}
-            venue={events[i].venue}
-            capacity={events[i].capacity}
-            symbol ={events[i].symbol}
-            imageCID={events[i].imageCID}
-          />
-        </div>
-      );
-    }
-    return cards;
-  }
-
-  const cardSection = (body: any) => {
-    return <div className="flex flex-wrap justify-center m-4">{body}</div>;
-  };
-
-  let loadingCards: JSX.Element[] = [];
-  const generateLoadingCards = (body: any) => {
-    for (let i = 0; i < 4; i++) {
-      loadingCards.push(
-        <Box key={i} margin={4} padding="2" boxShadow="lg" bg="white" width={80}>
-          <Skeleton height={48} />
-          <SkeletonText mt="4" noOfLines={8} spacing="4" skeletonHeight="4" />
-        </Box>
-      );
-    }
-    return loadingCards;
-  };
-
-  // make an api call to /viewEvents to get all the events created by the merchant
-  // then map the events to the card component
-
-  async function getEvents() {
-    const res = await fetch(BASE + "/viewEvents");
-    const data = await res.json();
-    return data;
-  }
-  async function getAllRegistrations() {
-    const res = await fetch(BASE + `/getAllRegistrations`);
-    const data = await res.json();
-    return data;
-  }
-
-  function calculateRevenue() {
-    let totalRevenue = 0;
-    // get the users eventTitle field
-    users.forEach(user => {
-      events.forEach((event: { title: any; price: number; }) => {
-        if (event.title == user.eventTitle){
-          totalRevenue += event.price
-        }
-      })
-    })
-    return totalRevenue
-  }
-  
   useEffect(() => {
     Promise.all([getEvents(), getAllRegistrations()]).then(([eventsRes, usersRes]) => {
       console.log(eventsRes);
@@ -96,6 +28,65 @@ export default function Home() {
       setLoading(false);
     });
   }, []);
+
+  async function getEvents() {
+    const res = await fetch(BASE + "/viewEvents");
+    const data = await res.json();
+    return data;
+  }
+
+  async function getAllRegistrations() {
+    const res = await fetch(BASE + `/getAllRegistrations`);
+    const data = await res.json();
+    return data;
+  }
+
+  function calculateRevenue() {
+    let totalRevenue = 0;
+    users.forEach(user => {
+      events.forEach((event: { title: any; price: number; }) => {
+        if (event.title === user.eventTitle) {
+          totalRevenue += event.price;
+        }
+      });
+    });
+    return totalRevenue;
+  }
+
+  function generateCards(events: any[]) {
+    return events.map((event, i) => (
+      <div key={i} className="m-2">
+        <Card
+          key={i}
+          title={event.title}
+          description={event.description}
+          price={event.price}
+          time={event.time}
+          venue={event.venue}
+          capacity={event.capacity}
+          symbol={event.symbol}
+          imageCID={event.imageCID}
+        />
+      </div>
+    ));
+  }
+
+  function generateLoadingCards() {
+    const loadingCards: JSX.Element[] = [];
+    for (let i = 0; i < 4; i++) {
+      loadingCards.push(
+        <Box key={i} margin={4} padding="2" boxShadow="lg" bg="white" width={80}>
+          <Skeleton height={48} />
+          <SkeletonText mt="4" noOfLines={8} spacing="4" skeletonHeight="4" />
+        </Box>
+      );
+    }
+    return loadingCards;
+  }
+
+  const cardSection = (body: JSX.Element[]) => (
+    <div className="flex flex-wrap justify-center m-4">{body}</div>
+  );
 
   return (
     <>
@@ -107,18 +98,16 @@ export default function Home() {
       </Head>
 
       <main>
-        {/* <BasicStatistics events={loading == false ? events.length : 0} /> */}
-        <BasicStatistics events ={{
-              "Total Events": events.length,
-              "NFTs Minted": users ? String(users.filter((user: { status: string; }) => user.status === "SUCCESSFUL").length) : String(0),
-              "Revenue":
-                "$" +
-                calculateRevenue(),
-            }} />
-        {loading == false ? (
-          cardSection(generateCards(events))
-        ) : ( cardSection(generateLoadingCards(loadingCards))
-        )}
+        <BasicStatistics
+          events={{
+            "Total Events": events.length,
+            "NFTs Minted": String(
+              users.filter((user: { status: string; }) => user.status === "SUCCESSFUL").length
+            ),
+            "Revenue": "$" + calculateRevenue(),
+          }}
+        />
+        {loading ? cardSection(generateLoadingCards()) : cardSection(generateCards(events))}
       </main>
     </>
   );
