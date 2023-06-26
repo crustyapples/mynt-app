@@ -253,6 +253,7 @@ const Content = () => {
               <h1 className="mt-4 font-bold text-3xl text-center">Scanner</h1>
               <div className="mx-auto my-5">
                 <QrReader
+                  facingMode="rear"
                   delay={200}
                   onError={handleError}
                   onScan={handleScan}
@@ -260,7 +261,7 @@ const Content = () => {
                     height: 240,
                     width: 320,
                   }}
-                  constraints={{ facingMode: "environment" }}
+                  
                 />
                 {showModal && (
                   <ConfirmationModal
