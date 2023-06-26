@@ -40,7 +40,7 @@ const Table: React.FC<TableProps> = ({ data }) => {
   };
 
   return (
-    <div className="overflow-x-auto rounded-lg">
+    <div className="overflow-x-auto rounded-lg m-4">
       <table className="w-full table-auto border-collapse">
         <thead className="text-black bg-gray-100">
           <tr>
