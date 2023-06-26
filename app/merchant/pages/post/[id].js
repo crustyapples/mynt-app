@@ -260,7 +260,7 @@ const Content = () => {
                     height: 240,
                     width: 320,
                   }}
-                  constraints={{ facingMode: "environment" }}
+                  // constraints={{ facingMode: "environment" }}
                 />
                 {showModal && (
                   <ConfirmationModal
