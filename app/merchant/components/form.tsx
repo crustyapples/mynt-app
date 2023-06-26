@@ -36,6 +36,10 @@ const EventForm = () => {
       alert('Event date must be a future date.');
       return;
     }
+    if (symbol.length > 18) {
+      alert('Symbol must be 18 characters or less.');
+      return;
+    }    
 
     const ipfsHash = await pinataUpload(image);
 
