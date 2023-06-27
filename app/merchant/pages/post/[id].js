@@ -4,6 +4,7 @@ import EventStats from "../../components/eventStats";
 import { useEffect, useState } from "react";
 import { Box, Skeleton, SkeletonText } from "@chakra-ui/react";
 import QrReader from "react-qr-scanner";
+// import { QrReader } from "react-qr-reader";
 import axios from "axios";
 import Table from "../../components/dataTable";
 import ConfirmationModal from "../../components/confirmationModal";
@@ -253,14 +254,15 @@ const Content = () => {
               <h1 className="mt-4 font-bold text-3xl text-center">Scanner</h1>
               <div className="mx-auto my-5">
                 <QrReader
-                  delay={200}
+                  scanDelay={200}
                   onError={handleError}
                   onScan={handleScan}
                   style={{
                     height: 240,
                     width: 320,
                   }}
-                  // constraints={{ facingMode: "environment" }}
+                  facingMode="rear"
+                  legacyMode={true}
                 />
                 {showModal && (
                   <ConfirmationModal
