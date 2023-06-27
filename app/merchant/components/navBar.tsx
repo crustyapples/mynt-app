@@ -6,13 +6,6 @@ import Link from "next/link";
 import { Card, CardBody, CardFooter, Stack, Heading, Text, Button, SkeletonText, Box } from '@chakra-ui/react';
 import { useRouter } from 'next/router';
 
-const App = dynamic(
-  () => {
-    return import("../pages/Web3Auth");
-  },
-  { ssr: false }
-);
-
 interface NavLinkProps {
   to: string;
   children: React.ReactNode;

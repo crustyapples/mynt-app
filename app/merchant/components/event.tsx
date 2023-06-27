@@ -21,13 +21,6 @@ import RaffleForm from "./raffleForm";
 import SelectForm from "./selectForm";
 import dynamic from "next/dynamic";
 
-const App = dynamic(
-  () => {
-    return import("../pages/Web3Auth");
-  },
-  { ssr: false }
-);
-
 interface CardProps {
   title: string;
   description: string;
