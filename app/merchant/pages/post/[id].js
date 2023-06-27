@@ -4,12 +4,20 @@ import EventStats from "../../components/eventStats";
 import { useEffect, useState } from "react";
 import { Box, Skeleton, SkeletonText } from "@chakra-ui/react";
 import { ContinuousQrScanner } from "react-webcam-qr-scanner.ts";
+import QrReader from "react-qr-scanner";
 import axios from "axios";
 import Table from "../../components/dataTable";
 import ConfirmationModal from "../../components/confirmationModal";
 
 const TELEGRAM_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT;
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+// detect if mobile or desktop
+const currentDisplay = () => {
+  if (typeof window !== "undefined") {
+    return window.innerWidth <= 800;
+  }
+};
 
 const Content = () => {
   const router = useRouter();
@@ -20,8 +28,7 @@ const Content = () => {
   const [showModal, setShowModal] = useState(false);
   const [parsedData, setParsedData] = useState(null);
   const [table, setTable] = useState([]);
-
-  const [qrCode, setQrCode] = useState("");
+  const isMobile = currentDisplay();
 
   function openScanner() {
     setScan(!scan);
@@ -60,13 +67,19 @@ const Content = () => {
   };
 
   const handleScan = (data) => {
+    // Sample: // {"userId": "52460092", "status": "SUCCESSFUL", "eventTitle": "test", "chatId": 52460092}
     if (data) {
-      const parsedData = JSON.parse(data);
-      // {"userId": "52460092", "status": "SUCCESSFUL", "eventTitle": "test", "chatId": 52460092}
-      console.log(parsedData)
+      let parsedData = "";
+      if (isMobile) {
+        parsedData = JSON.parse(data);
+        
+      } else {
+        
+        parsedData = JSON.parse(data.text);
+        
+      }
+
       setParsedData(parsedData);
-
-
       const user = attendees.find(
         (user) => user.id === parsedData.userId && user.status === "SUCCESSFUL"
       );
@@ -258,25 +271,28 @@ const Content = () => {
             <>
               <h1 className="mt-4 font-bold text-3xl text-center">Scanner</h1>
               <div className="mx-auto my-5">
-                {/* <QrReader
-                  scanDelay={200}
-                  onError={handleError}
-                  onScan={handleScan}
-                  style={{
-                    height: 240,
-                    width: 320,
-                  }}
-                  facingMode="rear"
-                  legacyMode={true}
-                /> */}
-                <ContinuousQrScanner
-                  onQrCode={handleScan}
-                  // constraints={{
-                  //   facingMode: "environment",
-                  // }}
-                  onError={handleError}
-                />
-                <>{qrCode}</>
+                {isMobile ? (
+                  <ContinuousQrScanner
+                    onQrCode={handleScan}
+                    constraints={{
+                      facingMode: "rear",
+                      video: "true",
+                    }}
+                    onError={handleError}
+                  />
+                ) : (
+                  <QrReader
+                    scanDelay={200}
+                    onError={handleError}
+                    onScan={handleScan}
+                    style={{
+                      height: 240,
+                      width: 320,
+                    }}
+                    facingMode="rear"
+                  />
+                )}
+
                 {showModal && (
                   <ConfirmationModal
                     show={showModal}
