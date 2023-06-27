@@ -37,9 +37,10 @@ const EventForm = () => {
       return;
     }
     if (symbol.length > 18) {
-      alert('Symbol must be 18 characters or less.');
+      alert('Symbol must be 18 characters or less!');
       return;
     }    
+    
 
     const ipfsHash = await pinataUpload(image);
 
