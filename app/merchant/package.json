@@ -31,10 +31,11 @@
     "framer-motion": "^8.5.0",
     "next": "13.1.2",
     "next-auth": "^4.18.10",
+    "qr-scanner": "^1.4.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-qr-reader": "^3.0.0-beta-1",
     "react-qr-scanner": "^1.0.0-alpha.11",
+    "react-webcam-qr-scanner.ts": "^1.0.4",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
