@@ -98,16 +98,20 @@ const EventForm = () => {
     if (data) {
       const dbInstance = doc(database, "/events", data.title + data.time);
       setDoc(dbInstance, data).then(() => {
-        window.location.reload()
+
         console.log("uploaded form data");
+        // 'file' comes from the Blob or File API
+        uploadBytes(storageRef, image!).then((snapshot) => {
+          console.log("Uploaded file!");
+          alert("Event created successfully!")
+          // send to home
+          window.location.href = "/";
+        });
+        
       });
-      // 'file' comes from the Blob or File API
-      uploadBytes(storageRef, image!).then((snapshot) => {
-        console.log('Uploaded a blob or file!');
-      });
-      alert('Event created successfully!');
-      // send back to home page
-      window.location.href = "/";
+      
+
+
     }
 
   };

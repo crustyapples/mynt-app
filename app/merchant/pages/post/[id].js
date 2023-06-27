@@ -3,7 +3,7 @@ import Event from "../../components/event";
 import EventStats from "../../components/eventStats";
 import { useEffect, useState } from "react";
 import { Box, Skeleton, SkeletonText } from "@chakra-ui/react";
-import QrReader from "react-qr-scanner";
+import { ContinuousQrScanner } from "react-webcam-qr-scanner.ts";
 import axios from "axios";
 import Table from "../../components/dataTable";
 import ConfirmationModal from "../../components/confirmationModal";
@@ -20,6 +20,8 @@ const Content = () => {
   const [showModal, setShowModal] = useState(false);
   const [parsedData, setParsedData] = useState(null);
   const [table, setTable] = useState([]);
+
+  const [qrCode, setQrCode] = useState("");
 
   function openScanner() {
     setScan(!scan);
@@ -59,8 +61,12 @@ const Content = () => {
 
   const handleScan = (data) => {
     if (data) {
-      const parsedData = JSON.parse(data.text);
+      const parsedData = JSON.parse(data);
+      // {"userId": "52460092", "status": "SUCCESSFUL", "eventTitle": "test", "chatId": 52460092}
+      console.log(parsedData)
       setParsedData(parsedData);
+
+
       const user = attendees.find(
         (user) => user.id === parsedData.userId && user.status === "SUCCESSFUL"
       );
@@ -252,16 +258,25 @@ const Content = () => {
             <>
               <h1 className="mt-4 font-bold text-3xl text-center">Scanner</h1>
               <div className="mx-auto my-5">
-                <QrReader
-                  delay={200}
+                {/* <QrReader
+                  scanDelay={200}
                   onError={handleError}
                   onScan={handleScan}
                   style={{
                     height: 240,
                     width: 320,
                   }}
-                  // constraints={{ facingMode: "environment" }}
+                  facingMode="rear"
+                  legacyMode={true}
+                /> */}
+                <ContinuousQrScanner
+                  onQrCode={handleScan}
+                  // constraints={{
+                  //   facingMode: "environment",
+                  // }}
+                  onError={handleError}
                 />
+                <>{qrCode}</>
                 {showModal && (
                   <ConfirmationModal
                     show={showModal}
