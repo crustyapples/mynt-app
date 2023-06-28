@@ -15,11 +15,12 @@ const EventForm = () => {
   const [venue, setVenue] = useState("");
   const [capacity, setCapacity] = useState("");
   const [symbol, setSymbol] = useState("");
+  const [eventType, setEventType] = useState("");
   const [image, setImage] = useState<File>();
 
   async function handleClick() {
     console.log(eventName, dateTime, venue, capacity, image);
-    if (!eventName || !dateTime || !venue || !capacity || !symbol || !image) {
+    if (!eventName || !dateTime || !venue || !capacity || !symbol || !eventType || !image) {
       alert('Please fill out all required fields.');
       return;
     }
@@ -52,6 +53,7 @@ const EventForm = () => {
       venue: venue,
       capacity: capacity,
       symbol: symbol,
+      eventType: eventType,
       imageCID: ipfsHash,
     }, image);
   }
@@ -94,7 +96,7 @@ const EventForm = () => {
 
   const storageRef = ref(storage, eventName + dateTime);
 
-  const uploadData = (data: { title: string; description: string; price: number; time: string; venue: string; capacity: string; symbol: string; imageCID: string;} | undefined, image: File) => {
+  const uploadData = (data: { title: string; description: string; price: number; time: string; venue: string; capacity: string; symbol: string; eventType: string; imageCID: string;} | undefined, image: File) => {
     // const dbInstance = collection(database, '/MerchantCollection');
     if (data) {
       const dbInstance = doc(database, "/events", data.title + data.time);
@@ -228,6 +230,21 @@ const EventForm = () => {
           onChange={(e) => setSymbol(e.target.value)}
         />
       </div>
+      <div className="mb-4">
+      <label className="block text-gray-700 font-medium mb-2" htmlFor="event-type">
+        Event Type
+      </label>
+      <select
+        className="border border-gray-400 p-2 w-full rounded-md"
+        id="event-type"
+        value={eventType}
+        onChange={(e) => setEventType(e.target.value)}
+      >
+        <option value="">Select Event Type</option>
+        <option value="raffle">Raffle Selection</option>
+        <option value="fcfs">First-Come First-Serve</option>
+      </select>
+    </div>
       <div className="mb-4">
         <label
           className="block text-gray-700 font-medium mb-2"
