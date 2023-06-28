@@ -65,6 +65,7 @@ export default function Home() {
           venue={event.venue}
           capacity={event.capacity}
           symbol={event.symbol}
+          eventType={event.eventType}
           imageCID={event.imageCID}
         />
       </div>

@@ -24,6 +24,7 @@ interface CardProps {
   venue: string;
   capacity: string;
   symbol: string;
+  eventType: string;
   imageCID: string;
 }
 
@@ -35,6 +36,7 @@ export default function Card({
   venue,
   capacity,
   symbol,
+  eventType,
   imageCID,
 }: CardProps) {
   const { isOpen: isOpenEditModal, onOpen: onOpenEditModal, onClose: onCloseEditModal } = useDisclosure();

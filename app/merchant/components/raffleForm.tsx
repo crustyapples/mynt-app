@@ -19,6 +19,7 @@ interface EventFormProps {
   users: string[];
   address: string[];
   symbol: string;
+  eventType: string;
   imageCID: string;
 }
 
@@ -32,6 +33,7 @@ const RaffleForm = ({
   users,
   address,
   symbol,
+  eventType,
   imageCID,
 }: EventFormProps) => {
   const [loading, setLoading] = useState(false);

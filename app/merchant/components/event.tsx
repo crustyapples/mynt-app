@@ -30,6 +30,7 @@ interface CardProps {
   capacity: string;
   users: string[];
   symbol: string;
+  eventType: string;
   imageCID: string;
 }
 
@@ -42,6 +43,7 @@ export default function Card({
   capacity,
   users,
   symbol,
+  eventType,
   imageCID,
 }: CardProps) {
   const [address, setAddress] = useState<string[]>([]);
@@ -284,7 +286,8 @@ export default function Card({
                     venue2={venue}
                     capacity2={capacity}
                     users={users}
-                    symbol = {symbol}
+                    symbol={symbol}
+                    eventType={eventType}
                     address={address}
                     imageCID ={imageCID}
                   />
@@ -324,6 +327,7 @@ export default function Card({
                     users={users}
                     address={address}
                     symbol={symbol}
+                    eventType={eventType}
                     imageCID={imageCID}
                   />
                 {/* ) : (

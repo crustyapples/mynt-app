@@ -175,6 +175,7 @@ const Content = () => {
     capacity: event.capacity,
     users: users,
     symbol: event.symbol,
+    eventType: event.evenType,
     imageCID: event.imageCID,
   };
 
