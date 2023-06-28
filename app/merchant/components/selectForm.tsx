@@ -302,9 +302,14 @@ const SelectForm = ({
     axios.post(BASE + "/mintNFT", data)
       .then((response) => {
         console.log(response.data);
-        console.log("Updating Registrations with Mint Accounts")
-        const mintPromises = userIds.map((userId) => {
-          const mintAccount = response.data[0][userId];
+        console.log("Updating Registrations with Mint Accounts");
+
+        const mintPromises = [];
+        const responseData = response.data;
+
+        for (let i = 0; i < userIds.length; i++) {
+          const userId = userIds[i];
+          const mintAccount = responseData[i][userId];
           const updateData = {  
             user_id: userId,
             event_title: eventName2,
@@ -312,8 +317,8 @@ const SelectForm = ({
             mint_account: mintAccount,
           };
 
-          return axios.post(BASE + "/updateRegistration", updateData);
-        });
+          mintPromises.push(axios.post(BASE + "/updateRegistration", updateData));
+        }
 
         return Promise.all(mintPromises);
       })
