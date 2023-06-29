@@ -388,13 +388,22 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
             [InlineKeyboardButton("< Back", callback_data="event_options")],
             [InlineKeyboardButton("Yes", callback_data="process_registration"),]
         ]
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f'Do you wish to make a payment of ${event_price} for the event using your Mynt Wallet?\n'
-            "Reply with Yes to confirm payment",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="markdown",
-        )
+        if event_price == 0:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f'Do you wish to confirm your registration for the event: {event_title} ?\n'
+                "Reply with Yes to confirm",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="markdown",
+            )
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f'Do you wish to make a payment of ${event_price} for the event using your Mynt Wallet?\n'
+                "Reply with Yes to confirm payment",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="markdown",
+            )
         
     return ROUTE
 
