@@ -434,10 +434,12 @@ async def complete_purchase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     response = requests.post(endpoint_url + "/ticketSale", json=data)
     logger.info("Saving payment records")
     if response.status_code == 200:
-        await context.bot.send_message(
-            text=f"Your wallet balance has been updated successfully",
-            chat_id=update.effective_chat.id
-        )
+        
+        if event_price > 0:
+            await context.bot.send_message(
+                text=f"Your wallet balance has been updated successfully",
+                chat_id=update.effective_chat.id
+            )
     else:
         await context.bot.send_message(
             text=f"Sorry, something went wrong when updating your wallet balance",
