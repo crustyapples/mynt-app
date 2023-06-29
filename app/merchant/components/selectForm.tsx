@@ -37,7 +37,6 @@ const SelectForm = ({
   imageCID,
 }: EventFormProps) => {
   const [loading, setLoading] = useState(false);
-  const [showSelectModal, setShowSelectModal] = useState(false);
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [showNotifyModal, setShowNotifyModal] = useState(false);
 
@@ -80,116 +79,12 @@ const SelectForm = ({
     
   };
 
-  function handleSelectClick() {
-    setShowSelectModal(true);
-  }
-
   function handleIssueClick() {
     setShowIssueModal(true);
   }
 
   function handleNotifyClick() {
     setShowNotifyModal(true);
-  }
-
-  async function handleSelectConfirm() {
-    setShowSelectModal(false);
-    setLoading(true);
-    
-    console.log("conducting selection")
-    try{
-      //set check to see if selection has been conducted before
-      const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
-      const registrations = response.data;
-      console.log(registrations)
-      // Check if any registration has a status other than PENDING
-      const nonPendingRegistrations = registrations.filter((registration: { status: string }) => registration.status !== "PENDING");
-      
-      if (nonPendingRegistrations.length > 0) {
-        // Exit the function if any registration is not pending
-        alert('Selection has already been conducted!');
-        setLoading(false);
-        window.location.reload();
-        return;
-      }
-
-      const amount = parseInt(capacity2);
-      const result = await conductSelect(users, amount);
-      const winners = result.winners
-      const losers = result.losers
-
-      console.log("winners", winners);
-      console.log("losers", losers);
-
-      if (winners.length == 0) {
-        alert('Error when selecting winners');
-        setLoading(false);
-        window.location.reload();
-        return;
-      }
-
-      // Update registration status of winners and losers
-      for (let i = 0; i < losers.length; i++) {
-        const data = {
-          user_id: (losers[i] as any).id,
-          event_title: eventName2,
-          status: "UNSUCCESSFUL",
-        };
-        
-        axios
-        .post(BASE + "/updateRegistration", data)
-        .then((response: { data: any }) => {
-          console.log(response.data);
-        })
-        .catch((error: any) => {
-          console.log(error);
-        });
-        
-        const timestamp = new Date().toLocaleString("en-US", { timeZone: "UTC" });
-
-        const transaction = {
-          user_id: (losers[i] as any).id,
-          amount: price2,
-          transaction_type: "REFUND",
-          timestamp: timestamp,
-          event_title: eventName2,
-        };
-
-        axios
-          .post(BASE + "/raffleRefund", transaction)
-          .then((response: { data: any }) => {
-            console.log(response.data);
-          })
-          .catch((error: any) => {
-            console.log(error);
-          });
-      }
-
-      let counter = 0;
-
-      for (let i = 0; i < winners.length; i++) {
-        const registrationData = {
-          user_id: winners[i].id,
-          event_title: eventName2,
-          status: "SUCCESSFUL",
-        };
-        axios.post(BASE + "/updateRegistration", registrationData).then((response: { data: any }) => {
-          console.log(response.data);
-          counter += 1;
-        }).then(() => {
-          if (counter === winners.length) {
-            console.log("selection conducted")
-            setLoading(false);
-            
-            window.location.reload();
-            
-          }
-        }) 
-      }
-    } catch (error: any) {
-      console.log("Error when issuing tickets: "+ error);
-    }
-
   }
 
   async function handleIssueConfirm() {
@@ -213,16 +108,6 @@ const SelectForm = ({
     setShowIssueModal(false);
     setLoading(true);
     notifyUsers();
-  }
-
-  // This method conducts the fcfs selection, and returns an array of winners and losers
-  async function conductSelect(users: any, amount: number) {
-    const winners: any[] = users
-    .sort((a: { registration_time: string; }, b: { registration_time: string; }) => a.registration_time.localeCompare(b.registration_time))
-    .slice(0, amount);
-    const losers = users.filter((x: any) => !winners.includes(x));
-    
-    return {winners, losers};
   }
 
   async function getSelectResult() {
@@ -385,7 +270,6 @@ const SelectForm = ({
         <Box margin={0} padding="4" boxShadow="lg" bg="#f3f4f6">
           <Skeleton margin={2} height={12} />
           <Skeleton margin={2} height={12} />
-          <Skeleton margin={2} height={12} />
           <Center>
             <Spinner />
           </Center>
@@ -395,14 +279,6 @@ const SelectForm = ({
           <div className="my-4">
             <h1 className="text-2xl font-bold text-center">{eventName2}</h1>
           </div>
-          
-          <button
-            type="button"
-            className="w-full text-white bg-black hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mt-4"
-            onClick={handleSelectClick}
-          >
-            Conduct Selection
-          </button>
           <button
             type="button"
             className="w-full text-white bg-black hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mt-4"
@@ -417,13 +293,6 @@ const SelectForm = ({
           >
             Notify Users
           </button>
-          <ConfirmationModal
-          show={showSelectModal}
-          title="Select Confirmation"
-          message="This will use first-come, first-serve method to determine which user will win the tickets. Are you sure you want to continue?"
-          onConfirm={handleSelectConfirm}
-          onCancel={() => setShowSelectModal(false)}
-          />
           <ConfirmationModal
             show={showIssueModal}
             title="Issue Confirmation"

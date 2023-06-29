@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useRouter } from 'next/router';
 
-import Form from "./form";
 import {
   Modal,
   ModalOverlay,
@@ -16,10 +15,8 @@ import ConfirmationModal from "./confirmationModal"
 import EditForm from "./editForm";
 import { database } from "@/firebaseConfig";
 import { deleteDoc, doc } from "firebase/firestore";
-import Link from "next/link";
 import RaffleForm from "./raffleForm";
 import SelectForm from "./selectForm";
-import dynamic from "next/dynamic";
 
 interface CardProps {
   title: string;
@@ -92,7 +89,6 @@ export default function Card({
       >
         <img
           className="rounded-t-lg h-72 w-full object-cover object-center"
-          // src="https://source.unsplash.com/random"
           src={imageSrc}
           alt="event image"
         />
@@ -156,21 +152,7 @@ export default function Card({
                   onClick={onOpenRaffleModal}
                   className="flex flex-wrap items-center mx-1 text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-2.5 py-2.5 text-center"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>{" "}
-                  Conduct Raffle
+                  Event Options
                 </button>
               )}
               {eventType === 'fcfs' && (
@@ -178,7 +160,7 @@ export default function Card({
                   onClick={onOpenSelectModal}
                   className="flex flex-wrap items-center mx-1 text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-2.5 py-2.5 text-center"
                 >
-                  First Come First Serve
+                  Event Options
                 </button>
               )}
               <button
@@ -263,10 +245,6 @@ export default function Card({
               <ModalHeader>Confirm Event NFT Data</ModalHeader>
               <ModalCloseButton />
               <ModalBody>
-                {/* <div className="flex flex-wrap justify-center m-2">
-                  <App callback={callback} />
-                </div>
-                {address.length > 0 ? ( */}
                   <RaffleForm
                     eventName2={title}
                     description2={description}
@@ -280,9 +258,6 @@ export default function Card({
                     address={address}
                     imageCID ={imageCID}
                   />
-                {/* ) : (
-                  <h1>Connect your Wallet to Conduct the Raffle!</h1>
-                )} */}
               </ModalBody>
 
               <ModalFooter>
@@ -296,7 +271,7 @@ export default function Card({
             </ModalContent>
           </Modal>
 
-          {/* <Modal isOpen={isOpenSelectModal} onClose={onCloseSelectModal}>
+          <Modal isOpen={isOpenSelectModal} onClose={onCloseSelectModal}>
             <ModalOverlay />
             <ModalContent>
               <ModalHeader>Confirm Event NFT Data</ModalHeader>
@@ -326,7 +301,7 @@ export default function Card({
                 </button>
               </ModalFooter>
             </ModalContent>
-          </Modal> */}
+          </Modal>
           
         </div>
       </div>
