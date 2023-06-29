@@ -157,12 +157,27 @@ def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
         event_time = event['time']
         event_venue = event['venue']
         event_price = event['price']
-        
-        text = f"Event Title: *{event_title}*\n" \
-                  f"Description: {event_description}\n" \
-                  f"Time: {event_time}\n" \
-                  f"Venue: {event_venue}\n" \
-                  f"Price: *{event_price}*\n\n"
+        event_type = event['eventType']
+        event_capacity = event['capacity']
+
+        if event_type == 'fcfs':
+            registrations = requests.get(endpoint_url + "/getEventRegistrations/"+event_title)
+            registration_data = registrations.json()
+            current_capacity = len(registration_data)
+
+            text = f"Event Title: *{event_title}*\n" \
+                    f"Description: {event_description}\n" \
+                    f"Time: {event_time}\n" \
+                    f"Venue: {event_venue}\n" \
+                    f"Capacity: {current_capacity}/{event_capacity}\n" \
+                    f"Price: *{event_price}*\n\n"
+
+        elif event_type =='raffle':
+            text = f"Event Title: *{event_title}*\n" \
+                    f"Description: {event_description}\n" \
+                    f"Time: {event_time}\n" \
+                    f"Venue: {event_venue}\n" \
+                    f"Price: *{event_price}*\n\n"
                     
         keyboard = [[InlineKeyboardButton(text='Register for Event', callback_data=f'title_{event_title}')],]
         reply_markup = InlineKeyboardMarkup(keyboard)
