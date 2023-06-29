@@ -179,7 +179,7 @@ def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
                     f"Venue: {event_venue}\n" \
                     f"Price: *{event_price}*\n\n"
                     
-        keyboard = [[InlineKeyboardButton(text='Register for Event', callback_data=f'title_{event_title}')],]
+        keyboard = [[InlineKeyboardButton(text='Register for Event', callback_data=f'title_{event_title}_{event_type}')],]
         reply_markup = InlineKeyboardMarkup(keyboard)
         photo_url = f"https://firebasestorage.googleapis.com/v0/b/treehoppers-mynt.appspot.com/o/{event_title}{event_time}?alt=media&token=07ddd564-df85-49a5-836a-c63f0a4045d6"
         # if is_valid_url(photo_url):
@@ -309,8 +309,13 @@ async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()   
     
     callback_data = update.callback_query.data ## (title_xx) The title starts from 5th index
-    event_title = callback_data[6:]
+    data_parts = callback_data.split('_')
+    event_title = data_parts[1]
+    event_type = data_parts[2]
+
     context.user_data["event_title"] = event_title
+    context.user_data["event_type"] = event_type
+
     events_dict = context.user_data["events_dict"]
     event_price = events_dict[event_title]
     context.user_data["event_price"] = event_price
@@ -387,12 +392,18 @@ async def complete_purchase(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def complete_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = context.user_data["user_id"]
     event_title = context.user_data["event_title"]
+    event_type = context.user_data['event_type']
     registration_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f'{user_id} has successfully registered for {event_title} at {registration_time}')
+
+    if event_type == 'raffle':
+        status = 'PENDING'
+    elif event_type == 'fcfs':
+        status = 'SUCCESSFUL'
     data = {
         'user_id': user_id,
         'event_title': event_title,
-        'status': 'PENDING',
+        'status': status,
         'registration_time': registration_time,
     }
     response = requests.post(endpoint_url + "/insertRegistration", json=data)
