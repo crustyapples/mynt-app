@@ -146,6 +146,11 @@ check_balance: Check the users balance against the event price
 =============================================================================================
 """
 
+def get_current_capacity(event_title):
+    registrations = requests.get(endpoint_url + "/getEventRegistrations/" + event_title)
+    registration_data = registrations.json()
+    return len(registration_data)
+
 def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
     
     event_array = [] # Contains message, button and photo to be sent for each event
@@ -159,40 +164,49 @@ def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
         event_price = event['price']
         event_type = event['eventType']
         event_capacity = event['capacity']
-        keyboard = [[InlineKeyboardButton(text='Register for Event', callback_data=f'title_{event_title}_{event_type}')],]
+        keyboard = []
 
         if event_type == 'fcfs':
-            registrations = requests.get(endpoint_url + "/getEventRegistrations/"+event_title)
-            registration_data = registrations.json()
-            current_capacity = len(registration_data)
+            current_capacity = get_current_capacity(event_title)
 
             text = f"Event Title: *{event_title}*\n" \
-                    f"Description: {event_description}\n" \
-                    f"Time: {event_time}\n" \
-                    f"Venue: {event_venue}\n" \
-                    f"Capacity: {current_capacity}/{event_capacity}\n" \
-                    f"Price: *{event_price}*\n\n"
-            if current_capacity >= int(event_capacity):
-                keyboard = [[InlineKeyboardButton(text='Fully Registered', callback_data='empty')],]
-
-
-        elif event_type =='raffle':
-            text = f"Event Title: *{event_title}*\n" \
-                    f"Description: {event_description}\n" \
+                    f"Description: {event_description}\n\n" \
+                    f"Event Type: *First-come-first-serve*\n" \
+                    f"Capacity: {current_capacity}/{event_capacity}\n\n" \
                     f"Time: {event_time}\n" \
                     f"Venue: {event_venue}\n" \
                     f"Price: *{event_price}*\n\n"
                     
-        reply_markup = InlineKeyboardMarkup(keyboard)
+            if current_capacity >= int(event_capacity):
+                text += "*This event has reached maximum capacity.*"
+            else:
+                keyboard = [[InlineKeyboardButton(text='Register for Event', callback_data=f'title_{event_title}_{event_type}')],]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
+
+        elif event_type =='raffle':
+            text = f"Event Title: *{event_title}*\n" \
+                    f"Description: {event_description}\n\n" \
+                    f"Event Type: *Raffle*\n" \
+                    f"Capacity: {event_capacity}\n\n" \
+                    f"Time: {event_time}\n" \
+                    f"Venue: {event_venue}\n" \
+                    f"Price: *{event_price}*\n\n"
+            keyboard = [[InlineKeyboardButton(text='Register for Event', callback_data=f'title_{event_title}_{event_type}')],]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+                    
+        
         photo_url = f"https://firebasestorage.googleapis.com/v0/b/treehoppers-mynt.appspot.com/o/{event_title}{event_time}?alt=media&token=07ddd564-df85-49a5-836a-c63f0a4045d6"
-        # if is_valid_url(photo_url):
         photo = PhotoSize(
             file_id=photo_url,
             file_unique_id="some_random_id",
             width=400,
             height=400
         )
-        event_array.append((text, reply_markup, photo))
+        if len(keyboard) > 0:
+            event_array.append((text, reply_markup, photo))
+        else:
+            event_array.append((text, photo))
         
         events_dict[event_title] = event_price
         
@@ -218,7 +232,36 @@ async def view_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update_default_event_message(update, context, "There are currently no ongoing events to register for")
     
     else:
-        for text, reply_markup, photo in event_array:
+        for event_info in event_array:
+            
+            ## No keyboard rendered (for fully registered events)
+            if(len(event_info) == 2):
+                text, photo = event_info
+                try:
+                    await context.bot.send_photo(
+                        chat_id=update.effective_chat.id, 
+                        photo=photo,
+                        caption=text, 
+                        parse_mode="markdown", 
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending photo for event: {e}")
+                    fallback_url ="https://ipfs.io/ipfs/QmfDTSqRjx1pgD1Jk6kfSyvGu1PhPc5GEx837ojK8wfGNi"
+                    photo = PhotoSize(
+                        file_id=fallback_url,
+                        file_unique_id="some_random_id",
+                        width=400,
+                        height=400
+                    )
+                    await context.bot.send_photo(
+                        chat_id=update.effective_chat.id, 
+                        photo=photo,
+                        caption=text, 
+                        parse_mode="markdown", 
+                    )
+                
+            elif (len(event_info) == 3):
+                text, reply_markup, photo = event_info
                 try:
                     await context.bot.send_photo(
                         chat_id=update.effective_chat.id, 
@@ -243,6 +286,7 @@ async def view_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         parse_mode="markdown", 
                         reply_markup=reply_markup
                     )
+                    
         text = "Please click on the register button for the event you would like to register for."
         await send_default_event_message(update, context, text)
         

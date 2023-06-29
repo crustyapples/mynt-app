@@ -60,7 +60,7 @@
   dependencies:
     buffer "~6.0.3"
 
-"@solana/web3.js@^1.2.0", "@solana/web3.js@^1.36.0":
+"@solana/web3.js@^1.36.0":
   version "1.73.0"
   resolved "https://registry.npmjs.org/@solana/web3.js/-/web3.js-1.73.0.tgz"
   integrity sha512-YrgX3Py7ylh8NYkbanoINUPCj//bWUjYZ5/WPy9nQ9SK3Cl7QWCR+NmbDjmC/fTspZGR+VO9LTQslM++jr5PRw==
@@ -785,7 +785,7 @@ mkdirp@^0.5.1:
   dependencies:
     minimist "^1.2.6"
 
-"mocha@^3.X.X || ^4.X.X || ^5.X.X || ^6.X.X || ^7.X.X || ^8.X.X || ^9.X.X || ^10.X.X", mocha@^9.0.3:
+mocha@^9.0.3:
   version "9.2.2"
   resolved "https://registry.npmjs.org/mocha/-/mocha-9.2.2.tgz"
   integrity sha512-L6XC3EdwT6YrIk0yXpavvLkn8h+EU+Y5UcCHKECyMbdUIxyMuZj4bX4U9e1nvnvUUvQVsV2VHQr5zLdcUkhW/g==
@@ -1123,7 +1123,7 @@ typescript@^4.3.5:
   resolved "https://registry.npmjs.org/typescript/-/typescript-4.9.4.tgz"
   integrity sha512-Uz+dTXYzxXXbsFpM86Wh3dKCxrQqUcVMxwU54orwlJjOpO3ao8L7j5lH+dWfTwgCwIuM9GQ2kvVotzYJMXTBZg==
 
-utf-8-validate@^5.0.2, utf-8-validate@>=5.0.2:
+utf-8-validate@^5.0.2:
   version "5.0.10"
   resolved "https://registry.npmjs.org/utf-8-validate/-/utf-8-validate-5.0.10.tgz"
   integrity sha512-Z6czzLq4u8fPOyx7TU6X3dvUZVvoJmxSQ+IcrlmagKhilxlhZgxPK6C5Jqbkw1IDUmFTM+cz9QDnnLTwDz/2gQ==
@@ -1174,7 +1174,7 @@ wrappy@1:
   resolved "https://registry.npmjs.org/wrappy/-/wrappy-1.0.2.tgz"
   integrity sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==
 
-ws@*, ws@^7.4.5:
+ws@^7.4.5:
   version "7.5.9"
   resolved "https://registry.npmjs.org/ws/-/ws-7.5.9.tgz"
   integrity sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q==
