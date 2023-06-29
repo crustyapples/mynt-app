@@ -159,6 +159,7 @@ def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
         event_price = event['price']
         event_type = event['eventType']
         event_capacity = event['capacity']
+        keyboard = [[InlineKeyboardButton(text='Register for Event', callback_data=f'title_{event_title}_{event_type}')],]
 
         if event_type == 'fcfs':
             registrations = requests.get(endpoint_url + "/getEventRegistrations/"+event_title)
@@ -171,6 +172,9 @@ def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
                     f"Venue: {event_venue}\n" \
                     f"Capacity: {current_capacity}/{event_capacity}\n" \
                     f"Price: *{event_price}*\n\n"
+            if current_capacity >= int(event_capacity):
+                keyboard = [[InlineKeyboardButton(text='Fully Registered', callback_data='empty')],]
+
 
         elif event_type =='raffle':
             text = f"Event Title: *{event_title}*\n" \
@@ -179,7 +183,6 @@ def format_event_data(response_data, context: ContextTypes.DEFAULT_TYPE):
                     f"Venue: {event_venue}\n" \
                     f"Price: *{event_price}*\n\n"
                     
-        keyboard = [[InlineKeyboardButton(text='Register for Event', callback_data=f'title_{event_title}_{event_type}')],]
         reply_markup = InlineKeyboardMarkup(keyboard)
         photo_url = f"https://firebasestorage.googleapis.com/v0/b/treehoppers-mynt.appspot.com/o/{event_title}{event_time}?alt=media&token=07ddd564-df85-49a5-836a-c63f0a4045d6"
         # if is_valid_url(photo_url):
