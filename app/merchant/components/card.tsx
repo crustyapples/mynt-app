@@ -52,10 +52,6 @@ export default function Card({
     setDeleted(true);
   }
 
-  function handleClick() {
-    console.log("Clicked!");
-  }
-
   const imageSrc = `https://firebasestorage.googleapis.com/v0/b/treehoppers-mynt.appspot.com/o/${
     title + time
   }?alt=media&token=07ddd564-df85-49a5-836a-c63f0a4045d6`;
