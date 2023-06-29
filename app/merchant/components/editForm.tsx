@@ -10,26 +10,31 @@ interface EventFormProps {
     dateTime2: string;
     venue2: string;
     capacity2: string;
+    symbol2: string;
+    eventType2: string;
 
 }
 
-const EventForm = ({eventName2,description2,price2,dateTime2,venue2,capacity2}:EventFormProps) => {
+const EventForm = ({eventName2,description2,price2,dateTime2,venue2,capacity2,symbol2,eventType2}:EventFormProps) => {
   const [eventName, setEventName] = useState(eventName2);
   const [description, setDescription] = useState(description2);
   const [price, setPrice] = useState(price2);
   const [dateTime, setDateTime] = useState(dateTime2);
   const [venue, setVenue] = useState(venue2);
   const [capacity, setCapacity] = useState(capacity2);
+  const [symbol, setSymbol] = useState(symbol2);
+  const [eventType, setEventType] = useState(eventType2);
+
   const [image, setImage] = useState<File>();
 
   function handleClick() {
-    console.log(eventName, dateTime, venue, capacity, image);
-    uploadData({ title: eventName, description: description, price: Number(price), time: dateTime, venue: venue, capacity: capacity},image!)
+    console.log(eventName, dateTime, venue, capacity, symbol, eventType, image);
+    uploadData({ title: eventName, description: description, price: Number(price), time: dateTime, venue: venue, capacity: capacity, symbol: symbol, eventType: eventType},image!)
   }
 
   const storageRef = ref(storage, eventName + dateTime);
 
-  const uploadData = (data: { title: string; description: string; price: number; time: string; venue: string; capacity: string;} | undefined, image: File) => {
+  const uploadData = (data: { title: string; description: string; price: number; time: string; venue: string; capacity: string; symbol: string, eventType: string} | undefined, image: File) => {
     // const dbInstance = collection(database, '/MerchantCollection');
     if (data) {
       const dbInstance = doc(database, "/events", data.title + data.time);

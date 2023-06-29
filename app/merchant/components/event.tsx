@@ -226,6 +226,8 @@ export default function Card({
                   dateTime2={time}
                   venue2={venue}
                   capacity2={capacity}
+                  symbol2={symbol}
+                  eventType2={eventType}
                 />
               </ModalBody>
 
