@@ -408,11 +408,16 @@ async def complete_registration(update: Update, context: ContextTypes.DEFAULT_TY
     }
     response = requests.post(endpoint_url + "/insertRegistration", json=data)
     if response.status_code == 200:
-        text=(f"You have successfully registered for {event_title}. \n"
-        "Please note that your registration does not guarantee a ticket, as we will be "
-        "conducting a raffle to randomly select the winners. \n"
-        "We will notify you of the outcome via message. \n"
-        "Thank you for your interest and we hope to see you at the event!")
+        if event_type == 'raffle':
+            text=(f"You have successfully registered for {event_title}. \n"
+            "Please note that your registration does not guarantee a ticket, as we will be "
+            "conducting a raffle to randomly select the winners. \n"
+            "We will notify you of the outcome via message. \n"
+            "Thank you for your interest and we hope to see you at the event!")
+        elif event_type == 'fcfs':
+            text=(f"You have successfully registered for {event_title}. \n"
+            "Tickets will be sent to you closer to the event date \n"
+            "Thank you for your interest and we hope to see you at the event!")
         await send_default_event_message(update, context, text)
         return ROUTE
     else:
