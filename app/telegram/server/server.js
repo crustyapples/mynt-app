@@ -321,6 +321,7 @@ const handleMint = async (userIds, eventTitle) => {
     if (userWalletKeys.newWallet) {
       // Transfer SOL to the user's wallet
       const transferSolTransaction = await transferSol(
+        userId,
         masterKeypair,
         userKeypair.publicKey,
         connection
@@ -341,6 +342,7 @@ const handleMint = async (userIds, eventTitle) => {
 
     // Transfer the NFT to the User's wallet, returns a string (mint account or failure message)
     const NftTransferTransaction = await transferNft(
+      userId, 
       masterKeypair,
       userKeypair.publicKey,
       connection,
