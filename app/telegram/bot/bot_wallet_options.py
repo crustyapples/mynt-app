@@ -164,7 +164,7 @@ async def proceed_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     topup_amount = int(callback_data)
     context.user_data["topup_amount"] = topup_amount
 
-    await context.bot.send_invoice(
+    invoice_message = await context.bot.send_invoice(
         chat_id=update.effective_chat.id,
         title=f"Top up Wallet",
         description="Topping up your Mynt wallet",
@@ -173,6 +173,18 @@ async def proceed_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         currency="SGD",
         prices=[LabeledPrice("Ticket Price", topup_amount * 100)]
     )
+
+    context.user_data['invoice_message'] = invoice_message # so that it can be deleted in send_default_wallet_message later within bot_utils
+
+    original_message = context.user_data['original_message'] # initialized during the start function
+    if original_message != None:
+      await original_message.delete()
+
+    text = "Back to Wallet Options"
+
+    await send_default_wallet_message(update, context, text) 
+    # context.user_data['original_message'] = original_message
+
     return ROUTE
     
 
@@ -200,7 +212,17 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
         'timestamp': timestamp
     }
     response = requests.post(endpoint_url + "/topUpWallet", json=data)
+
+    context.user_data['successfully_payed'] = True
+
+    invoice_message = context.user_data['invoice_message']
+    await invoice_message.delete()
+    context.user_data['invoice_message'] = None
+
     if response.status_code == 200:
+
+        original_message = context.user_data['original_message']
+        await original_message.delete()
         text=f"You have successfully topped up ${topup_amount}!"
         await send_default_wallet_message(update, context, text)
 

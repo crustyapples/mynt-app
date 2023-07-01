@@ -62,6 +62,52 @@ async def is_new_user(user_id):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     context.user_data["new_user"] = await is_new_user(user_id)
+
+    message = update.message
+    if message != None: # deletes the start mesage
+        chat_id = message.chat_id
+        message_id = message.message_id
+        await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
+
+    try: 
+        query = update.callback_query # checking if this is part of an existing thread, basically if a user presses a back to menu button
+        await query.answer()
+
+    except Exception as e:
+        print("This is the start of a new message thread") # basically the user presses the /start command, in this way we delete all the older messages
+
+        try:
+            if context.user_data['invoice_message'] != None: # if I want to delete the top up wallet message that is being triggered by send_default_wallet_message
+                invoice = context.user_data['invoice_message']
+                await invoice.delete()
+                context.user_data['invoice_message'] = None # doing this in case there are errors later if the invoice_message is not found (already deleted)
+
+        except Exception:
+            print("invoice message has not been set")
+
+        try:
+            if context.user_data['events_messages'] != None: # if I want to delete the events message that is being triggered by view_events in bot_utils
+                event_messages = context.user_data['events_messages']
+
+                for message in event_messages:
+                    await message.delete() # deleting each message
+
+                context.user_data['events_messages'] = None # doing this in case there are errors later if the 'events_messages' is not found (already deleted)
+
+        except Exception:
+            print("event messages has not been set")
+
+        try:
+            if context.user_data['original_message'] != None: # if I want to delete the original message that is being triggered by sending /start during top_up_wallet
+                original_message = context.user_data['original_message']
+                await original_message.delete()
+                context.user_data['original_message'] = None # doing this in case there are errosr later if the invoice_message is not found (already deleted)
+
+        except Exception:
+            print("original message has not been set")
+
+    print("----------------------------")
+
     if context.user_data["new_user"] == True:
         await new_user_menu(update, context)
     else:
