@@ -295,7 +295,7 @@ module.exports = {
 
   getUserWalletFirebase: async (userId) => {
     const createUserWalletFirebase = async (userId) => {
-      console.log("New user detected, creating new wallet");
+      console.log("New user detected, creating new wallet for ", userId);
 
       // Generate a new key pair for the Solana network
       const keypair = Keypair.generate();
@@ -426,7 +426,6 @@ module.exports = {
           [mintAccount, userKeypair],
           { commitment: "processed" }
         );
-        console.log("Mint Account address: ", mintAccount.publicKey.toString());
       };
 
       const sendMintTransaction = async () => {
@@ -468,7 +467,7 @@ module.exports = {
     }
   },
 
-  transferSol: async (masterKeypair, userPublickey, connection) => {
+  transferSol: async (userId, masterKeypair, userPublickey, connection) => {
     try {
       const transferInstruction = SystemProgram.transfer({
         fromPubkey: masterKeypair.publicKey,
@@ -482,13 +481,14 @@ module.exports = {
         [masterKeypair],
         { skipPreflight: true, commitment: "processed" }
       );
-      console.log("Successfully transferred SOL to User, txn: ", signature);
+      console.log("Successfully transferred SOL to User, ", userId);
     } catch (err) {
       console.log("Error while transferring SOL", err);
     }
   },
 
   transferNft: async (
+    userId, 
     masterKeypair,
     userPublickey,
     connection,
@@ -534,7 +534,7 @@ module.exports = {
       transaction.sign([masterKeypair]);
 
       const txid = await connection.sendTransaction(transaction, { skipPreflight: true, commitment: "processed" });
-      console.log("Successfully Transferred NFT to user, txn:", txid);
+      console.log("Successfully Transferred NFT to user ", userId);
       return mintAccountAddress;
     } catch (err) {
       console.log("transferNft failed, ", err);
