@@ -273,13 +273,15 @@ const Content = () => {
               <h1 className="mt-4 font-bold text-3xl text-center">Scanner</h1>
               <div className="mx-auto my-5">
                 {isMobile ? (
-                  <ContinuousQrScanner
-                    onQrCode={handleScan}
-                    constraints={{
-                      facingMode: "rear",
-                      video: "true",
-                    }}
+                  <QrReader
+                    scanDelay={200}
                     onError={handleError}
+                    onScan={handleScan}
+                    style={{
+                      height: 240,
+                      width: 320,
+                    }}
+                    facingMode="rear"
                   />
                 ) : (
                   <QrReader
