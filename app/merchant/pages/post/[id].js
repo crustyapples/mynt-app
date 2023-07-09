@@ -3,21 +3,20 @@ import Event from "../../components/event";
 import EventStats from "../../components/eventStats";
 import { useEffect, useState } from "react";
 import { Box, Skeleton, SkeletonText } from "@chakra-ui/react";
-import { ContinuousQrScanner } from "react-webcam-qr-scanner.ts";
-import QrReader from "react-qr-scanner";
+// import { ContinuousQrScanner } from "react-webcam-qr-scanner.ts";
+// import QrReader from "react-qr-scanner";
 import axios from "axios";
 import Table from "../../components/dataTable";
 import ConfirmationModal from "../../components/confirmationModal";
+import dynamic from "next/dynamic";
 
 const TELEGRAM_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT;
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-// detect if mobile or desktop
-const currentDisplay = () => {
-  if (typeof window !== "undefined") {
-    return window.innerWidth <= 800;
-  }
-};
+const BarcodeScannerComponent = dynamic(
+  () => import("react-qr-barcode-scanner"),
+  { ssr: false }
+);
 
 const Content = () => {
   const router = useRouter();
@@ -28,7 +27,7 @@ const Content = () => {
   const [showModal, setShowModal] = useState(false);
   const [parsedData, setParsedData] = useState(null);
   const [table, setTable] = useState([]);
-  const isMobile = currentDisplay();
+  const [data, setData] = useState("Not Found");
 
   function openScanner() {
     setScan(!scan);
@@ -69,20 +68,14 @@ const Content = () => {
   const handleScan = (data) => {
     // Sample: // {"userId": "52460092", "status": "SUCCESSFUL", "eventTitle": "test", "chatId": 52460092}
     if (data) {
-      let parsedData = "";
-      if (isMobile) {
-        parsedData = JSON.parse(data);
-        
-      } else {
-        
-        parsedData = JSON.parse(data.text);
-        
-      }
-
+      let parsedData = JSON.parse(data);
+      console.log(parsedData);
       setParsedData(parsedData);
       const user = attendees.find(
         (user) => user.id === parsedData.userId && user.status === "SUCCESSFUL"
       );
+
+      console.log(parsedData.eventTitle, event.title);
 
       if (parsedData.eventTitle === event.title && user) {
         setShowModal(true);
@@ -149,7 +142,7 @@ const Content = () => {
                   handle: user.handle,
                   number: user.contact,
                   status: user.status,
-                  mint_account: user.mint_account,
+                  mint_account: user.mint_account ? user.mint_account : "N/A",
                   registration_time: user.registration_time,
                   redemption_time: user.redemption_time,
                 };
@@ -214,7 +207,7 @@ const Content = () => {
       user_id: parsedData.userId,
       event_title: parsedData.eventTitle,
       status: "REDEEMED",
-      mint_account: user.mint_account,
+      mint_account: user.mint_account ? user.mint_account : "",
       redemption_time: redemptionTime,
     };
 
@@ -251,8 +244,8 @@ const Content = () => {
     // Show alert
     window.alert(`User: ${user.name} have been successfully verified!`);
 
-    // Reload the page
-    window.location.reload();
+    // // Reload the page
+    // window.location.reload();
   };
 
   return (
@@ -272,29 +265,17 @@ const Content = () => {
             <>
               <h1 className="mt-4 font-bold text-3xl text-center">Scanner</h1>
               <div className="mx-auto my-5">
-                {isMobile ? (
-                  <QrReader
-                    scanDelay={200}
-                    onError={handleError}
-                    onScan={handleScan}
-                    style={{
-                      height: 240,
-                      width: 320,
+                <>
+                  <BarcodeScannerComponent
+                    delay={200}
+                    width={500}
+                    height={500}
+                    onUpdate={(err, result) => {
+                      if (result) handleScan(result.text);
+                      else setParsedData("Not Found");
                     }}
-                    facingMode="rear"
                   />
-                ) : (
-                  <QrReader
-                    scanDelay={200}
-                    onError={handleError}
-                    onScan={handleScan}
-                    style={{
-                      height: 240,
-                      width: 320,
-                    }}
-                    facingMode="rear"
-                  />
-                )}
+                </>
 
                 {showModal && (
                   <ConfirmationModal
