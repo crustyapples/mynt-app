@@ -98,6 +98,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             print("event messages has not been set")
 
         try:
+            if context.user_data["registration_confirmation"] != None: # if I want to delete the wallet deduction that is being triggered when a user successful registers for an event in complete_purchase in bot_event_options
+                registration_confirmation = context.user_data["registration_confirmation"]
+
+                await registration_confirmation.delete() # deleting message
+
+                context.user_data["registration_confirmation"] = None # doing this in case there are errors later if the 'registration_confirmation' is not found (already deleted)
+
+        except Exception:
+            print("registration message has not been set")
+
+        try:
             if context.user_data['original_message'] != None: # if I want to delete the original message that is being triggered by sending /start during top_up_wallet
                 original_message = context.user_data['original_message']
                 await original_message.delete()

@@ -367,6 +367,19 @@ def check_balance(user_id, event_price):
 
 
 async def validate_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
+    try:
+        if context.user_data['events_messages'] != None: # if I want to delete the events message that is being triggered by view_events in bot_utils
+            event_messages = context.user_data['events_messages']
+
+            for message in event_messages:
+                await message.delete() # deleting each message
+
+            context.user_data['events_messages'] = None # doing this in case there are errors later if the 'events_messages' is not found (already deleted)
+
+    except Exception:
+        print("event messages has not been set")
+
     logger.info("Validating registration for user")
     query = update.callback_query
     await query.answer()   
@@ -459,12 +472,12 @@ async def complete_purchase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if response.status_code == 200:
         
         if event_price > 0:
-            await context.bot.send_message(
+            context.user_data["registration_confirmation"] = await context.bot.send_message(
                 text=f"Your wallet balance has been updated successfully",
                 chat_id=update.effective_chat.id
             )
     else:
-        await context.bot.send_message(
+        context.user_data["registration_confirmation"] = await context.bot.send_message(
             text=f"Sorry, something went wrong when updating your wallet balance",
             chat_id=update.effective_chat.id
         )
