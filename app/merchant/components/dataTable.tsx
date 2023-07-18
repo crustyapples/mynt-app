@@ -67,14 +67,22 @@ const Table: React.FC<TableProps> = ({ data }) => {
               {sortColumn === "status" && (sortDirection === "asc" ? "▲" : "▼")}
             </th>
 
-            <th className="px-4 py-2" onClick={() => handleSort("registration_time")}>
+            <th
+              className="px-4 py-2"
+              onClick={() => handleSort("registration_time")}
+            >
               Registration Time{" "}
-              {sortColumn === "registation_time" && (sortDirection === "asc" ? "▲" : "▼")}
+              {sortColumn === "registation_time" &&
+                (sortDirection === "asc" ? "▲" : "▼")}
             </th>
 
-            <th className="px-4 py-2" onClick={() => handleSort("redemption_time")}>
+            <th
+              className="px-4 py-2"
+              onClick={() => handleSort("redemption_time")}
+            >
               Redemption Time{" "}
-              {sortColumn === "redemption_time" && (sortDirection === "asc" ? "▲" : "▼")}
+              {sortColumn === "redemption_time" &&
+                (sortDirection === "asc" ? "▲" : "▼")}
             </th>
           </tr>
         </thead>
@@ -120,7 +128,7 @@ const Table: React.FC<TableProps> = ({ data }) => {
 
               <td className="border px-4 py-2">
                 <a>
-                  {row.mint_account ? (
+                  {row.mint_account && row.mint_account != "Minting failed" ? (
                     <a
                       href={`https://solana.fm/address/${row.mint_account}/metadata?cluster=devnet-qn1`}
                       className="flex flex-wrap font-light hover:text-blue-500"
@@ -143,18 +151,17 @@ const Table: React.FC<TableProps> = ({ data }) => {
                     </a>
                   ) : null}
                 </a>
+                {row.mint_account === "Minting failed" ? (
+                  <a style={{ color: "red" }}>Minting failed</a>
+                ) : null}
               </td>
 
               <td className="border px-4 py-2">
-                <a>
-                  {row.registration_time}
-                </a>
+                <a>{row.registration_time}</a>
               </td>
 
               <td className="border px-4 py-2">
-                <a>
-                  {row.redemption_time}
-                </a>
+                <a>{row.redemption_time}</a>
               </td>
             </tr>
           ))}
