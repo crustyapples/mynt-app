@@ -128,7 +128,7 @@ const Table: React.FC<TableProps> = ({ data }) => {
 
               <td className="border px-4 py-2">
                 <a>
-                  {row.mint_account && row.mint_account != "Minting failed" ? (
+                  {row.mint_account !== "N/A" && row.mint_account !== "Minting failed" ? (
                     <a
                       href={`https://solana.fm/address/${row.mint_account}/metadata?cluster=devnet-qn1`}
                       className="flex flex-wrap font-light hover:text-blue-500"

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { database } from "../firebaseConfig";
 import { setDoc, doc } from "firebase/firestore";
 import axios from "axios";
-import ConfirmationModal from "./confirmationModal"
+import ConfirmationModal from "./confirmationModal";
 import { Box, Skeleton, Spinner, Center } from "@chakra-ui/react";
 
 const JWT = process.env.NEXT_PUBLIC_PINATA_JWT;
@@ -59,16 +59,13 @@ const SelectForm = ({
     return result;
   };
 
-  const uploadData = async(
-    data:
-      | {
-          merchantKey: string;
-          symbol: string;
-          title: string;
-          uri: string;
-        }
-  ) => {
-    console.log("uploading event nft data")
+  const uploadData = async (data: {
+    merchantKey: string;
+    symbol: string;
+    title: string;
+    uri: string;
+  }) => {
+    console.log("uploading event nft data");
     if (data) {
       const title = data.title + "-nft";
       const dbInstance = doc(database, "/nfts", title + dateTime2);
@@ -76,7 +73,6 @@ const SelectForm = ({
         console.log("finished uploading event nft data");
       });
     }
-    
   };
 
   function handleIssueClick() {
@@ -91,7 +87,7 @@ const SelectForm = ({
     setShowIssueModal(false);
     console.log(eventName2, dateTime2, venue2, capacity2);
     setLoading(true);
-    
+
     const result = await getSelectResult();
     if (result) {
       const winners = result.winners;
@@ -101,7 +97,7 @@ const SelectForm = ({
     } else {
       // Handle the case when result is undefined
       console.error("Failed to get selection result");
-    } 
+    }
   }
 
   async function handleNotifyConfirm() {
@@ -111,157 +107,245 @@ const SelectForm = ({
   }
 
   async function getSelectResult() {
-    const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+    const response = await axios.get(
+      BASE + "/getEventRegistrations/" + eventName2
+    );
     const registrations = response.data;
 
-    const successfulRegistrations = registrations.filter((registration: { status: any }) => registration.status == "SUCCESSFUL");
-    const successfulUserIds = successfulRegistrations.map((registration: { userId: any }) => registration.userId);
+    const successfulRegistrations = registrations.filter(
+      (registration: { status: any }) => registration.status == "SUCCESSFUL"
+    );
+    const successfulUserIds = successfulRegistrations.map(
+      (registration: { userId: any }) => registration.userId
+    );
 
-    const winners = users.filter((user: any) => successfulUserIds.includes(user.id));
+    const winners = users.filter((user: any) =>
+      successfulUserIds.includes(user.id)
+    );
     const losers = users.filter((x: any) => !winners.includes(x));
 
     if (winners.length == 0) {
-      alert('Please conduct the selection first!');
+      alert("Please conduct the selection first!");
       setLoading(false);
       window.location.reload();
       return;
-    } else{
-      return {winners, losers};
+    } else {
+      return { winners, losers };
     }
-    
   }
 
   async function issueNfts(winners: any[], losers: any[]) {
-    const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+    const response = await axios.get(
+      BASE + "/getEventRegistrations/" + eventName2
+    );
     const registrations = response.data;
-    const existingMintAccount = registrations.some((registration: { mint_account?: any }) => registration.mint_account);
+    // Update the check to see if ALL of the mint accounts have valid address
+    const allMintAccountsValid = registrations.every(
+      (registration: { mint_account?: any }) => {
+        const mintAccount = registration?.mint_account;
+        return mintAccount !== undefined && mintAccount !== "Minting failed";
+      }
+    );
 
-    if (existingMintAccount) {
-      alert('NFTs has already been minted before!');
+    // Include a check to see if any of the mint accounts have Minting Failed (Retry minting)
+    const someMintAccountsValid = registrations.some(
+      (registration: { mint_account?: any }) => {
+        const mintAccount = registration?.mint_account;
+        return mintAccount === "Minting failed";
+      }
+    );
+
+    if (allMintAccountsValid) {
+      alert("NFTs has already been minted before!");
       setLoading(false);
       window.location.reload();
-      return
+      return;
     }
 
-    console.log("uploading metadata")
-    const metadata = {
-      title: eventName2,
-      symbol: symbol,
-      description: description2,
-      image: `https://ipfs.io/ipfs/${imageCID}`,
-      attributes: [
-        { trait_type: "Date/Time", value: dateFormat(dateTime2) },
-        { trait_type: "Ticket Price", value: price2 },
-        { trait_type: "Venue", value: venue2 },
-      ],
-      properties: {
-        files: [
-          {
-            uri: `https://ipfs.io/ipfs/${imageCID}`,
-            type: "image/png",
-          },
+    else if (someMintAccountsValid) {
+      const userIdsMintingFailed = registrations
+        .filter(
+          (registration: { mint_account?: any }) =>
+            registration.mint_account === "Minting failed"
+        )
+        .map((registration: { userId?: any }) => registration.userId);
+
+      const data = {
+        user_ids: userIdsMintingFailed,
+        event_title: eventName2,
+        status: "SUCCESSFUL",
+      };
+
+      console.log("Retrying minting for user");
+      console.log(userIdsMintingFailed);
+
+      axios
+        .post(BASE + "/mintNFT", data)
+        .then((response) => {
+          console.log(response.data);
+          console.log(
+            "Updating Registrations with Mint Accounts- Mint fallback"
+          );
+
+          const mintPromises = [];
+          const responseData = response.data;
+
+          for (let i = 0; i < userIdsMintingFailed.length; i++) {
+            const userId = userIdsMintingFailed[i];
+            const mintAccount = responseData[i][userId];
+            const updateData = {
+              user_id: userId,
+              event_title: eventName2,
+              status: "SUCCESSFUL",
+              mint_account: mintAccount,
+            };
+
+            mintPromises.push(
+              axios.post(BASE + "/updateRegistration", updateData)
+            );
+          }
+
+          return Promise.all(mintPromises);
+        })
+        .then((updateResponses) => {
+          console.log(updateResponses);
+        })
+        .catch((error) => {
+          console.error(error);
+        })
+        .finally(() => {
+          setLoading(false);
+          window.location.reload();
+        });
+      return;
+    } else {
+      console.log("uploading metadata");
+      const metadata = {
+        title: eventName2,
+        symbol: symbol,
+        description: description2,
+        image: `https://ipfs.io/ipfs/${imageCID}`,
+        attributes: [
+          { trait_type: "Date/Time", value: dateFormat(dateTime2) },
+          { trait_type: "Ticket Price", value: price2 },
+          { trait_type: "Venue", value: venue2 },
         ],
-        category: null,
-      },
-    };
-    console.log("This is the metadata: "+metadata);
-    
-      
-    await pinataMetadataUpload(metadata).then(async (res) => {
-      await uploadData(
-        {
+        properties: {
+          files: [
+            {
+              uri: `https://ipfs.io/ipfs/${imageCID}`,
+              type: "image/png",
+            },
+          ],
+          category: null,
+        },
+      };
+      console.log("This is the metadata: " + metadata);
+
+      await pinataMetadataUpload(metadata).then(async (res) => {
+        await uploadData({
           merchantKey: "GjjWyt7avbnhkcJzWJYboA33ULNqFUH5ZQk58Wcd2n2z",
           symbol: symbol,
           title: eventName2,
           uri: `https://ipfs.io/ipfs/${res}`,
-        }
-      );
-    });
-    console.log("Issuing NFTs to winners");
-    const userIds = winners.map((user) => user.id);
-
-    const data = {
-      user_ids: userIds,
-      event_title: eventName2,
-      status: "SUCCESSFUL",
-    };
-
-    axios.post(BASE + "/mintNFT", data)
-      .then((response) => {
-        console.log(response.data);
-        console.log("Updating Registrations with Mint Accounts");
-
-        const mintPromises = [];
-        const responseData = response.data;
-
-        for (let i = 0; i < userIds.length; i++) {
-          const userId = userIds[i];
-          const mintAccount = responseData[i][userId];
-          const updateData = {  
-            user_id: userId,
-            event_title: eventName2,
-            status: "SUCCESSFUL",
-            mint_account: mintAccount,
-          };
-
-          mintPromises.push(axios.post(BASE + "/updateRegistration", updateData));
-        }
-
-        return Promise.all(mintPromises);
-      })
-      .then((updateResponses) => {
-        console.log(updateResponses);
-      })
-      .catch((error) => {
-        console.error(error);
-      })
-      .finally(() => {
-        setLoading(false);
-        window.location.reload();
+        });
       });
+      console.log("Issuing NFTs to winners");
+      const userIds = winners.map((user) => user.id);
+
+      const data = {
+        user_ids: userIds,
+        event_title: eventName2,
+        status: "SUCCESSFUL",
+      };
+
+      axios
+        .post(BASE + "/mintNFT", data)
+        .then((response) => {
+          console.log(response.data);
+          console.log("Updating Registrations with Mint Accounts");
+
+          const mintPromises = [];
+          const responseData = response.data;
+
+          for (let i = 0; i < userIds.length; i++) {
+            const userId = userIds[i];
+            const mintAccount = responseData[i][userId];
+            const updateData = {
+              user_id: userId,
+              event_title: eventName2,
+              status: "SUCCESSFUL",
+              mint_account: mintAccount,
+            };
+
+            mintPromises.push(
+              axios.post(BASE + "/updateRegistration", updateData)
+            );
+          }
+
+          return Promise.all(mintPromises);
+        })
+        .then((updateResponses) => {
+          console.log(updateResponses);
+        })
+        .catch((error) => {
+          console.error(error);
+        })
+        .finally(() => {
+          setLoading(false);
+          window.location.reload();
+        });
+    }
   }
 
   async function notifyUsers() {
-    const response = await axios.get(BASE + "/getEventRegistrations/"+ eventName2);
+    const response = await axios.get(
+      BASE + "/getEventRegistrations/" + eventName2
+    );
     const registrations = response.data;
-    const missingMintAccount = registrations.some((registration: { mint_account: any; }) => !registration.mint_account);
+    const missingMintAccount = registrations.some(
+      (registration: { mint_account: any }) => !registration.mint_account
+    );
 
     if (missingMintAccount) {
-      alert('Please issue the NFTs before notifying users');
+      alert("Please issue the NFTs before notifying users");
       setLoading(false);
       window.location.reload();
       return;
     }
 
     const result = await getSelectResult();
-    
-    if (result){
+
+    if (result) {
       const winners = result.winners;
       const losers = result.losers;
 
       for (let i = 0; i < winners.length; i++) {
-        console.log("updating winners")
+        console.log("updating winners");
         const message = `Congratulations! You have won a ticket to ${eventName2}! To view your registration status, use /start to access the menu. There will be a button to redeem your ticket under the "Events" tab. See you at ${eventName2}!`;
-          const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(winners[i] as any).chat_id}&text=${message}`;
-          fetch(telegramPush).then((res) => {
-            console.log(res);
-          })
+        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${
+          (winners[i] as any).chat_id
+        }&text=${message}`;
+        fetch(telegramPush).then((res) => {
+          console.log(res);
+        });
       }
 
       for (let i = 0; i < losers.length; i++) {
-        console.log("updating losers")
+        console.log("updating losers");
         const message = `Unfortunately, due to the over subscription for ${eventName2}, your registration was not successful. Your funds have been refunded and we hope to see you at the next event!`;
-        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${(losers[i] as any).chat_id}&text=${message}`;
+        const telegramPush = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${
+          (losers[i] as any).chat_id
+        }&text=${message}`;
         fetch(telegramPush).then((res) => {
           console.log(res);
-        })
+        });
       }
       setLoading(false);
       window.location.reload();
-    }else{
+    } else {
       console.error("Failed to get selection result");
     }
-    
   }
 
   return (
