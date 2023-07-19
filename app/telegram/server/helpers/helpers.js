@@ -43,7 +43,7 @@ require("dotenv").config({ path: "../../../../.env" });
 
 const idl = require("../idl.json");
 const firebaseConfig = {
-  apiKey: "AIzaSyAkhEEbHzLsVNnl6iVJtXegV9zuljKB5i8",
+  apiKey: process.env.FIREBASE_API_KEY,
   authDomain: "treehoppers-mynt.firebaseapp.com",
   projectId: "treehoppers-mynt",
   storageBucket: "treehoppers-mynt.appspot.com",
