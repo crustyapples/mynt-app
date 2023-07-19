@@ -39,17 +39,35 @@ const {
 const {
   default: NodeWallet,
 } = require("@project-serum/anchor/dist/cjs/nodewallet");
-require("dotenv").config({ path: "../../../../.env" });
+require("dotenv").config({ path: "./.env" });
 
 const idl = require("../idl.json");
-const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
+const firebaseConfigDev = {
+  apiKey: process.env.FIREBASE_DEV_API_KEY,
   authDomain: "treehoppers-mynt.firebaseapp.com",
   projectId: "treehoppers-mynt",
   storageBucket: "treehoppers-mynt.appspot.com",
   messagingSenderId: "751257459683",
   appId: "1:751257459683:web:10c7f44cd9684098205ed6",
 };
+const firebaseConfigProd = {
+  apiKey: process.env.FIREBASE_PROD_API_KEY,
+  authDomain: "treehoppers-mynt-prod.firebaseapp.com",
+  projectId: "treehoppers-mynt-prod",
+  storageBucket: "treehoppers-mynt-prod.appspot.com",
+  messagingSenderId: "896296035834",
+  appId: "1:896296035834:web:d930407a247bbae63d7043",
+  measurementId: "G-25SHHFJM1K"
+};
+let firebaseConfig;
+if (process.env.NODE_ENV === 'development') {
+  firebaseConfig = firebaseConfigDev
+  console.log("Connected to development DB")
+} else if (process.env.NODE_ENV === 'production') {
+  firebaseConfig = firebaseConfigProd
+  console.log("Connected to production DB")
+}
+
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 // const CUSTOM_DEVNET_RPC = process.env.DEVNET_RPC;
