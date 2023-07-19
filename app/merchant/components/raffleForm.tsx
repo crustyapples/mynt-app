@@ -268,16 +268,23 @@ const RaffleForm = ({
       BASE + "/getEventRegistrations/" + eventName2
     );
     const registrations = response.data;
-    // Update the check to see if ALL of the mint accounts have valid address
-    const allMintAccountsValid = registrations.every(
-      (registration: { mint_account?: any }) => {
+
+    const successfulRegistrations = registrations.filter(
+      (registration: {status?: any}) => {
+        return registration.status === "SUCCESSFUL"
+      }
+    )
+
+    // Update the check to see if ALL of the SUCCESSFUL registrations have valid Mint Accounts
+    const allMintAccountsValid = successfulRegistrations.every(
+      (registration: { mint_account?: any}) => {
         const mintAccount = registration?.mint_account;
         return mintAccount !== undefined && mintAccount !== "Minting failed";
       }
     );
 
-    // Include a check to see if any of the mint accounts have Minting Failed (Retry minting)
-    const someMintAccountsValid = registrations.some(
+    // Include a check to see if any of the SUCCESSFUL registrations have mint accounts have Minting Failed (Retry minting)
+    const someMintAccountsValid = successfulRegistrations.some(
       (registration: { mint_account?: any }) => {
         const mintAccount = registration?.mint_account;
         return mintAccount === "Minting failed";
@@ -290,7 +297,7 @@ const RaffleForm = ({
       window.location.reload();
       return;
     } else if (someMintAccountsValid) {
-      const userIdsMintingFailed = registrations
+      const userIdsMintingFailed = successfulRegistrations
         .filter(
           (registration: { mint_account?: any }) =>
             registration.mint_account === "Minting failed"
