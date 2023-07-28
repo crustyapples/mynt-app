@@ -1,4 +1,4 @@
-# Treehopper <> Mynt: Event Registration and NFT Ticketing made easy with Telegram
+# Treehoppers <> Mynt: Event Registration and NFT Ticketing made easy with Telegram
 
 This is an NFT Ticketing Platform which simplifies Event Creation and NFT Ticket Issuance for Merchants, and Event Registration and Ticket Redemption for users through a Telegram Bot. 
 
